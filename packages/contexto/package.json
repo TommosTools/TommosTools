@@ -1,0 +1,58 @@
+{
+  "name": "contexto",
+  "version": "0.1.3",
+  "description": "Enhanced React contexts in userland",
+  "keywords": [
+    "react",
+    "context",
+    "hooks",
+    "usecontexts"
+  ],
+  "author": "Tommo <tommos.tools@gmail.com>",
+  "license": "MIT",
+  "private": false,
+  "scripts": {
+    "compile": "run-s compile:*",
+    "precompile": "mkdir -p dist/common src/targetPlatform && cp src/types/index.ts dist/common/index.d.ts",
+    "precompile:dom": "cp -f src/platforms/dom/* src/targetPlatform",
+    "compile:dom": "tsup --env.targetPlatform dom src/index.ts",
+    "precompile:native": "cp -f src/platforms/native/* src/targetPlatform",
+    "compile:native": "tsup --env.targetPlatform native src/index.ts",
+    "lint": "eslint 'src/**/*.ts'",
+    "test": "cp src/{platforms/dom,targetPlatform}/batchedUpdates.ts && jest"
+  },
+  "devDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "scheduler": "^0.23.0"
+  },
+  "peerDependencies": {
+    "react": ">=16.8.0",
+    "react-dom": "*",
+    "react-native": "*",
+    "scheduler": "^0.23.0"
+  },
+  "peerDependenciesMeta": {
+    "react-dom": {
+      "optional": true
+    },
+    "react-native": {
+      "optional": true
+    }
+  },
+  "type": "module",
+  "main": "./dist/dom/index.cjs",
+  "module": "./dist/dom/index.js",
+  "browser": "./dist/dom/index.js",
+  "react-native": "./dist/native/index.cjs",
+  "types": "./dist/common/index.d.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "types": "./dist/common/index.d.ts",
+      "module": "./dist/dom/index.js",
+      "import": "./dist/dom/index.js",
+      "default": "./dist/dom/index.cjs"
+    }
+  }
+}
