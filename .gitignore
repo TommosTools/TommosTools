@@ -1,0 +1,4 @@
+node_modules/
+packages/*/dist
+lerna-debug.log
+.DS_Store
