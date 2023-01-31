@@ -1,5 +1,8 @@
 # contexto
 
+[![npm](https://img.shields.io/npm/v/contexto)](https://www.npmjs.com/package/contexto)
+[![size](https://img.shields.io/bundlephobia/minzip/contexto)](https://bundlephobia.com/result?p=contexto)
+
 Enhanced React contexts in userland
 
 ---
@@ -9,11 +12,9 @@ Enhanced React contexts in userland
 React's `Context` and `useContext` are a convenient way to share values
 within a dynamic scope, and can avoid messy prop-drilling.
 
-However, React's stock implementation of Contexts can perform poorly when
+However, React's stock implementation of contexts can perform poorly when
 used to share values that change frequently, have many consumers, or are
-provided to a large component tree.  Updates to complex or aggregate values
-cause all consumers to re-render, even if the component is interested only
-in a portion of the context value that has not been modified.
+provided to a large component tree.
 
 ---
 
@@ -37,59 +38,51 @@ new hotness to consume contexts from existing code and external libraries.
 ## Usage
 
 ```javascript
-import React, { useCallback, useRef } from "react";
-import ReactDOM from "react-dom";
-import { createContext, useContext, useContextUpdate } from "contexto";
+import { createContext, useContexts, useContextUpdate } from "contexto";
 
-const CounterContext = createContext({});
+const MyContext         = createContext("defaultValue");
+const MyOtherContext    = createContext("defaultOtherValue");
 
-const useMemberEqual = (id) =>
-  useCallback((previous, current) => previous[id] === current[id], [id]);
-
-const useMemberIncrement = (id) => {
-  const update = useContextUpdate(CounterContext);
-
-  return useCallback(
-    () => update(values => ({ ...values, [id]: values[id] + 1 }),
-    [update, id]));
-};
-
-function Counter({ id }) {
-  const isMemberEqual = useMemberEqual(id);
-  const increment     = useMemberIncrement(id);
-  const count         = useContext(CounterContext, isMemberEqual)[id];
-
+function Reader() {
+  const values = useContexts({ first: MyContext, second: MyOtherContext });
   return (
-    <tr>
-      <th>{id}:</th>
-      <td>{count}</td>
-      <td><button onClick={increment}>Increment</button></td>
-      <th>Render #{++renderCounts[id]}</th>
-    </tr>
+    <dl>
+      <dt>First:</dt>  <dd>{values.first}</dd>
+      <dt>Second:</dt> <dd>{values.second}</dd>
+    </dl>
   );
 }
-const renderCounts = { count1: 0, count2: 0 };
+
+function Updater() {
+  const update = useContextUpdate(MyContext);
+  return <button onClick={ () => update("newValue") }>Update</button>
+}
 
 function App() {
-  const ref = useRef();
-  const initialCounts = { count1: 0, count2: 0 };
-
   return (
-    <table>
-      <tbody>
-        <CounterContext.Provider initialValue={initialCounts} ref={ref}>
-          <Counter id="count1" />
-          <Counter id="count2" />
-        </CounterContext.Provider>
-        <button onClick={ () => ref.current.update(initialCounts) }>Reset counters</button>
-      </tbody>
-    </table>
+    <MyContext.Provider value="someValue">
+      <MyOtherContext.Provider value="someOtherValue">
+        <Reader/>
+        <Updater/>
+      </MyOtherContext.Provider>
+    </MyContext.Provider>
   );
 }
-
-ReactDOM.render(<App />, document.getElementById('root'));
 ```
 
+## Installation
+
+Contexto is compatible with React 16.8+, React Native 16.8+ and Preact 10+.
+You'll need to install one of those yourself. If you're using React or React Native,
+you'll also need to install `scheduler`.
+
+```bash
+yarn add contexto react scheduler
+```
+
+Contexto comes with its own TypeScript definitions.
+
+---
 
 ## API
 
@@ -548,6 +541,64 @@ object that can be passed to Contexto's `useContext` and `useContexts` functions
 resulting "proxy context" is read-only – it does not have an associated Provider, and cannot be
 imperatively updated – it can be used to take advantage of selective subscriptions and multiple
 context ingestion.
+
+---
+
+## Example
+
+```javascript
+import React, { useCallback, useRef } from "react";
+import ReactDOM from "react-dom";
+import { createContext, useContext, useContextUpdate } from "contexto";
+
+const CounterContext = createContext({});
+
+const useMemberEqual = (id) =>
+  useCallback((previous, current) => previous[id] === current[id], [id]);
+
+const useMemberIncrement = (id) => {
+  const update = useContextUpdate(CounterContext);
+
+  return useCallback(
+    () => update(values => ({ ...values, [id]: values[id] + 1 }),
+    [update, id]));
+};
+
+function Counter({ id }) {
+  const isMemberEqual = useMemberEqual(id);
+  const increment     = useMemberIncrement(id);
+  const count         = useContext(CounterContext, isMemberEqual)[id];
+
+  return (
+    <tr>
+      <th>{id}:</th>
+      <td>{count}</td>
+      <td><button onClick={increment}>Increment</button></td>
+      <th>Render #{++renderCounts[id]}</th>
+    </tr>
+  );
+}
+const renderCounts = { count1: 0, count2: 0 };
+
+function App() {
+  const ref = useRef();
+  const initialCounts = { count1: 0, count2: 0 };
+
+  return (
+    <table>
+      <tbody>
+        <CounterContext.Provider initialValue={initialCounts} ref={ref}>
+          <Counter id="count1" />
+          <Counter id="count2" />
+        </CounterContext.Provider>
+        <button onClick={ () => ref.current.update(initialCounts) }>Reset counters</button>
+      </tbody>
+    </table>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById('root'));
+```
 
 ---
 
