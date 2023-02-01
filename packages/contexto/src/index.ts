@@ -14,3 +14,5 @@ export {
 	BridgeProvider,
 	useBridgeValue,
 } from "./BridgeProvider";
+
+export { useSubscriber } from "./api";

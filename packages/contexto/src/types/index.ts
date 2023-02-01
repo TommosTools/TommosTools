@@ -5,6 +5,7 @@ import type {
 	ReactNode,
 	RefAttributes,
 } from "react";
+import type { Subscriber } from "../api";
 
 const CONTEXTO_MAIN_KEY = Symbol("Contexto");
 export const CONTEXTO_KEY = Symbol("CONTEXTO_KEY");
@@ -191,3 +192,6 @@ export declare function BridgeProvider(props: BridgeProviderProps): ReactNode;
  * @param contexts A list of Contexto contexts.
  */
 export declare function useBridgeValue(contexts: ContextTuple): Contexto;
+
+/** API access: not for general consumption. */
+export declare function useSubscriber(): Subscriber;
