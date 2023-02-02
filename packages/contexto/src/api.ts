@@ -1,10 +1,23 @@
-import { useCallback, useContext as useReactContext } from "react";
-import { ContextInstance, InstanceStackContext } from "./ContextInstance";
-import { CONTEXTO_KEY, Listener, SubscriptionContext } from "./types";
-import { assertSubscriptionContext, getContextId } from "./types/internal";
+/* eslint-disable import/prefer-default-export */
 
-export type Subscriber		= <T>(context: SubscriptionContext<T>, callback: Listener<T>) => [T, Unsubscriber];
-export type Unsubscriber	= () => void;
+import {
+	useCallback,
+	useContext as useReactContext,
+} from "react";
+import {
+	ContextInstance,
+	InstanceStackContext,
+} from "./ContextInstance";
+import {
+	CONTEXTO_KEY,
+	Listener,
+	Subscriber,
+	SubscriptionContext,
+} from "./types";
+import {
+	assertSubscriptionContext,
+	getContextId,
+} from "./types/internal";
 
 /**
  * Prepare a function to subscribe to updates of Contexto contexts.
