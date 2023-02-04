@@ -9,7 +9,7 @@ import { createContext, useContextUpdate, ContextType } from "contexto";
 import { useContextSelector } from "..";
 import { act } from "react-dom/test-utils";
 
-const Context1 = createContext({ top: 111, nested: { inner: 222 }});
+const Context1 = createContext({ top: 111, nested: { inner: 222 }}, { contextId: "assorted" });
 type Type1 = ContextType<typeof Context1>;
 
 test("useContextSelector selects from context", async () =>
@@ -63,4 +63,67 @@ test("useContextSelector selects from context", async () =>
 		expect(screen.getByTestId("test2")).toHaveTextContent('{"inner":225} / 2');
 		expect(screen.getByTestId("test3")).toHaveTextContent('{"inner":226} / 2');
 
+	});
+
+
+jest.useFakeTimers();
+
+test("timerTest", async () =>
+	{
+		const MyContext = createContext({ quickTick: 0, slowTick: 0 }, { contextId: "tickers" });
+
+		function useTicker(periodMs: number, delayMs=0) {
+			const [tick, setTick] = useState(0);
+			useEffect(() => {
+				setTimeout(() =>
+					setInterval(() => setTick(t => t + 1), periodMs),
+					delayMs
+				);
+			}, []);
+			return tick;
+		}
+	
+		const Provider = ({ children }: { children: ReactNode }) => {
+			const quickTick = useTicker(100);
+			const slowTick	= useTicker(1000, 10);
+			return <MyContext.Provider value={{ quickTick, slowTick }} children={children} />
+		}
+	 
+		let slowRenderCount = 0;
+		const SlowConsumer = () => {
+			// Will render only once a second
+			const tick = useContextSelector(MyContext, "slowTick");
+			useEffect(() => { ++slowRenderCount });
+			return <span data-testid="slow">{tick}</span>
+		}
+
+		let quickRenderCount = 0;
+		const QuickConsumer = () => {
+			// Will render 10 times a second (not 11)
+			const tick = useContextSelector(MyContext, "quickTick");
+			useEffect(() => { ++quickRenderCount; });
+			return <span data-testid="quick">{tick}</span>
+		}
+	
+		const App = () =>
+			<Provider>
+				<SlowConsumer/>
+				<QuickConsumer/>
+			</Provider>
+
+		render(<App/>);
+		expect(slowRenderCount).toBe(1);
+		expect(quickRenderCount).toBe(1);
+
+		act(() => jest.advanceTimersByTime(20));
+
+		for (let i=1; i <= 10; ++i)
+		{
+			expect(slowRenderCount).toBe(1);
+			expect(quickRenderCount).toBe(i);
+			act(() => jest.advanceTimersByTime(100));
+		}
+
+		expect(slowRenderCount).toBe(2);	// Has rendered once since initial render
+		expect(quickRenderCount).toBe(11);	// Has rendered ten times since initial render
 	});

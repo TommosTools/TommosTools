@@ -1,4 +1,4 @@
-# @tommostools/use-context-selector
+# use-context-selector
 
 Hook for simple context slicing in React
 
