@@ -1,4 +1,5 @@
-# contexto
+contexto
+========
 
 [![npm](https://img.shields.io/npm/v/contexto)](https://www.npmjs.com/package/contexto)
 [![size](https://img.shields.io/bundlephobia/minzip/contexto)](https://bundlephobia.com/result?p=contexto)
