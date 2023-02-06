@@ -3,12 +3,15 @@
  */
 
 import { render } from "@testing-library/react";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useState, createContext as createReactContext, useRef } from "react";
 import { act } from "react-dom/test-utils";
-import { createContext, useContextUpdate, useSubscriber } from "..";
+import { createContext, createProxyContext, useContextUpdate, useSubscriber } from "..";
 
 const Context1 = createContext(111, { contextId: "context1" });
 const Context2 = createContext("two", { contextId: "context2" });
+
+const RawContext = createReactContext(-1);
+const Context3 = createProxyContext(RawContext, { contextId: "context3" });
 
 test("useSubscriber", async () =>
 	{
@@ -100,4 +103,54 @@ test("useSubscriber", async () =>
 
 		// multiple listeners to the same context work okay
 		expect(updateCount3).toBe(3);
+	});
+
+jest.useFakeTimers();
+
+test("useSubscriber with ProxyContext", async () =>
+	{
+		const Provider = ({ children }: { children: ReactNode }) =>
+			{
+				const [tick, setTick] = useState(0);
+				useEffect(() => {
+					const intervalId = setInterval(() => setTick(tick => tick + 1), 1000);
+					return () => clearInterval(intervalId);
+				});
+				return <RawContext.Provider value={tick} children={children} />
+			};
+
+		let updateCount = 0;
+		let sum = 0;
+		const listener = (newValue: number) => {
+			++updateCount;
+			sum += newValue;
+		}
+
+		const Subscriber = () =>
+			{
+				const subscribe = useSubscriber();
+
+				useEffect(() =>
+					{
+						let unsubscribe;
+						[sum, unsubscribe] = subscribe(Context3, listener);
+						return unsubscribe;
+					},
+					[]
+				);
+
+				return null;
+			}
+		
+		render(<Provider><Subscriber/></Provider>);
+
+		expect(updateCount).toBe(0);
+		expect(sum).toBe(0);
+
+		for (let i=1, j=1; i <= 5; ++i, j += i)
+		{
+			act(() => jest.advanceTimersByTime(1000));
+			expect(updateCount).toBe(i);
+			expect(sum).toBe(j);
+		}
 	});

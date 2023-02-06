@@ -9,13 +9,13 @@ import {
 	InstanceStackContext,
 } from "./ContextInstance";
 import {
+	Context,
 	CONTEXTO_KEY,
 	Listener,
 	Subscriber,
-	SubscriptionContext,
 } from "./types";
 import {
-	assertSubscriptionContext,
+	assertInternalContext,
 	getContextId,
 } from "./types/internal";
 
@@ -25,7 +25,7 @@ import {
  * @returns A stable `Subscriber` function associated with the Context values
  * at the calling component's position in the component tree.
  * 
- * Calling the `Subscriber` function adds a listener callback for a SubscriptionContext:
+ * Calling the `Subscriber` function adds a listener callback for a Context:
  * the given listener will be invoked with the latest value every time the
  * nearest Provider's value is updated (either by changing the value prop
  * or by imperative update).
@@ -44,9 +44,9 @@ export function useSubscriber(): Subscriber
 	const instances = useReactContext(InstanceStackContext);
 
 	return useCallback(
-		<T>(context: SubscriptionContext<T>, callback: Listener<T>) =>
+		<T>(context: Context<T>, callback: Listener<T>) =>
 		{
-			assertSubscriptionContext(context);
+			assertInternalContext(context);
 
 			const instance		= instances[getContextId(context)] as ContextInstance<T>;
 			const currentValue	= instance ? instance.snapshot : context[CONTEXTO_KEY].defaultValue;

@@ -193,5 +193,5 @@ export declare function BridgeProvider(props: BridgeProviderProps): ReactNode;
 export declare function useBridgeValue(contexts: ContextTuple): Contexto;
 
 /** API access: not for general consumption. */
-export type Subscriber = <T>(context: SubscriptionContext<T>, callback: Listener<T>) => [T, Unsubscriber];
+export type Subscriber = <T>(context: Context<T>, callback: Listener<T>) => [T, Unsubscriber];
 export declare function useSubscriber(): Subscriber;
