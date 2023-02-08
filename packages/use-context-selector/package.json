@@ -10,6 +10,10 @@
   ],
   "author": "Tommo <tommos.tools@gmail.com>",
   "homepage": "https://github.com/TommosTools/TommosTools",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TommosTools/TommosTools.git"
+  },
   "license": "MIT",
   "private": false,
   "scripts": {
