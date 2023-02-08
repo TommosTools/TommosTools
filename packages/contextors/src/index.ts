@@ -6,7 +6,6 @@ import {
 } from "contexto";
 import type { Context } from "contexto";
 import {
-	useCallback,
 	useEffect,
 	useReducer,
 	useRef,
@@ -84,9 +83,31 @@ class Contextor<T, Inputs extends Tuple<ContextorInput<unknown>> = any>
 	}
 }
 
+export function createContextor<T, Inputs extends Tuple<ContextorInput<unknown>>>(
+	inputs: Inputs,
+	combiner: (inputs: TypesFor<Inputs>) => T
+): Contextor<T>
+{
+	return new Contextor(inputs, combiner);
+}
+
 export function useContextor<T>(contextor: Contextor<T>): T
 {
 	const subscriber = useSubscriber();
+
+	const subscribeToContextor = (
+		(newContextor: Contextor<T>): State<T> =>
+		{
+			const [initialValue, unsubscribe] = (
+				newContextor.subscribe(
+					subscriber,
+					(updatedValue: T) => dispatch({ type: "setValue", value: updatedValue })
+				)
+			);
+
+			return { value: initialValue, unsubscribe };
+		}
+	);
 
 	const [{ value: currentValue }, dispatch] = (
 		useReducer(
@@ -110,21 +131,6 @@ export function useContextor<T>(contextor: Contextor<T>): T
 			contextor,
 			(initialContextor) => subscribeToContextor(initialContextor)
 		)
-	);
-
-	const subscribeToContextor: (newContextor: Contextor<T>) => State<T> = useCallback(
-		(newContextor) =>
-		{
-			const [initialValue, unsubscribe] = (
-				newContextor.subscribe(
-					subscriber,
-					(updatedValue: T) => dispatch({ type: "setValue", value: updatedValue })
-				)
-			);
-
-			return { value: initialValue, unsubscribe };
-		},
-		[subscriber, dispatch]
 	);
 
 	useEffectOnUpdate(
