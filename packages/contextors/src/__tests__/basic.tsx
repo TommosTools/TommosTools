@@ -9,6 +9,20 @@ import { act } from "react-dom/test-utils";
 import { createContext } from "contexto";
 import { createContextor, useContextor } from "..";
 
+
+test("example", () =>
+	{
+		const UserContext		= createContext({ id: 1, firstName: "John", lastName: "Smith" }, { contextId: "" });
+		const selectUserName	= createContextor([UserContext], ([user]) => `${user.firstName} ${user.lastName}`);
+
+		const UserNameComponent = () =>
+			<div data-testid="test">{ useContextor(selectUserName) }</div>
+
+		render(<UserNameComponent/>);
+
+		expect(screen.getByTestId("test")).toHaveTextContent("John Smith");
+	});
+
 type User = {
 	id:			string;
 	firstName:	string;
