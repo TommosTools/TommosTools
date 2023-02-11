@@ -6,6 +6,7 @@ import {
 } from "contexto";
 import type { Context } from "contexto";
 import {
+	Reducer,
 	useEffect,
 	useReducer,
 	useRef,
@@ -47,7 +48,7 @@ class Contextor<T, Inputs extends Tuple<ContextorInput<unknown>> = any>
 
 	subscribe(subscriber: Subscriber, onChange: Listener<T>): [T, Unsubscriber]
 	{
-		const { inputs, combiner } = this;
+		const { inputs } = this;
 
 		const unsubscribers: Unsubscriber[] = [];
 		const unsubscribeAll = () => unsubscribers.forEach((unsubscribe) => unsubscribe());
@@ -60,7 +61,7 @@ class Contextor<T, Inputs extends Tuple<ContextorInput<unknown>> = any>
 						(newValue: V) =>
 						{
 							inputValues[i] = newValue;
-							onChange(combiner(inputValues));
+							onChange(this.cachedCombiner(inputValues));
 						}
 					);
 
@@ -77,11 +78,94 @@ class Contextor<T, Inputs extends Tuple<ContextorInput<unknown>> = any>
 			) as unknown as TypesFor<Inputs>
 		);
 
-		const initialValue = combiner(inputValues);
+		const initialValue = this.cachedCombiner(inputValues);
 
 		return [initialValue, unsubscribeAll];
 	}
+
+	private cache: NestedCache<T> = new WeakMap();
+
+	// Arbitrary object scoped to the Contextor that can be used to index a WeakMap
+	private TerminalCacheKey = {};
+
+	private cachedCombiner(inputValues: TypesFor<Inputs>): T
+	{
+		//
+		// Caching of combined values using nested WeakMaps.
+		//
+		// Where the context values are objects, they are used to create a chain of WeakMaps
+		// with the last map in the chain containing a memoised combined value computed from
+		// the input values.
+		// This final cache level stores the latest value computed for the objects
+		// in the inputValues -- if there are non-objects in the inputValues then only the
+		// result for the most recent input is cached.
+		//
+		// e.g.
+		//   cachedCombiner([obj1, obj2, obj3, obj4])    // First access -- cache miss
+		//   cachedCombiner([obj1, obj2, obj3, obj4])    // Cache HIT
+		//   cachedCombiner([obj1, obj2, obj3, "foo"])   // Cache miss
+		//   cachedCombiner([obj1, obj2, obj3, "bar"])   // Cache miss
+		//   cachedCombiner([obj1, obj2, obj3, "bar"])   // Cache HIT
+		//   cachedCombiner([obj1, obj2, obj3, "foo"])   // Cache miss
+		//   cachedCombiner([obj1, obj2, obj3, "bar"])   // Cache miss
+		//   cachedCombiner([obj1, obj2, obj3, obj4])    // Cache HIT
+		//   cachedCombiner([obj1, obj2, "foo", "bar"])  // Cache miss
+		//   cachedCombiner([obj1, obj2, "foo", "bar"])  // Cache HIT
+		//
+		// Each cache is specific to the Contextor, but is shared between all `useContextor`
+		// usages referencing that Contextor, regardless of which Context.Provider they
+		// subscribe to.
+		//
+
+		let cacheRef = this.cache;
+
+		for (const input of inputValues)
+		{
+			if (isObject(input))
+			{
+				let nextCacheRef = cacheRef.get(input) as NestedCache<T>;
+				if (nextCacheRef)
+					cacheRef = nextCacheRef;
+				else
+				{
+					nextCacheRef = new WeakMap();
+					cacheRef.set(input, nextCacheRef);
+					cacheRef = nextCacheRef;
+				}
+			}
+		}
+
+		const terminalCache = cacheRef.get(this.TerminalCacheKey);
+
+		if (isTerminalCache(terminalCache) && shallowEqual(terminalCache.keys, inputValues))
+		{
+			// Cached value was found
+			return terminalCache.value;
+		}
+		// Recompute value, and store in cache
+		const value = this.combiner(inputValues);
+		cacheRef.set(this.TerminalCacheKey, { keys: [...inputValues], value });
+		return value;
+	}
 }
+
+type TerminalCache<T> = { value: T, keys: unknown[] };
+type NestedCache<T>	= WeakMap<object, NestedCache<T> | TerminalCache<T>>;
+
+function isTerminalCache<T>(cache: NestedCache<T> | TerminalCache<T> | undefined): cache is TerminalCache<T>
+{
+	return cache !== undefined && !(cache instanceof WeakMap);
+}
+
+function isObject(value: unknown): value is object
+{
+	return value instanceof Object;
+}
+
+const shallowEqual = (array1: unknown[], array2: unknown[]) => (
+	(array1 === array2)
+	|| ((array1.length === array2.length) && array1.every((keyComponent, i) => keyComponent === array2[i]))
+);
 
 export function createContextor<T, Inputs extends Tuple<ContextorInput<unknown>>>(
 	inputs: Inputs,
@@ -91,11 +175,35 @@ export function createContextor<T, Inputs extends Tuple<ContextorInput<unknown>>
 	return new Contextor(inputs, combiner);
 }
 
+function contextorReducer<T>(state: State<T>, action: Action<T>): State<T>
+{
+	const { value, unsubscribe, subscribe } = state;
+
+	switch (action.type)
+	{
+		case "setValue":
+			return { value: action.value, unsubscribe, subscribe };
+		case "unsetContextor":
+			unsubscribe?.();
+			return { value, subscribe };
+		case "setContextor":
+			return { ...subscribe(action.contextor), subscribe };
+		default:
+			return state;
+	}
+}
+
 export function useContextor<T>(contextor: Contextor<T>): T
 {
 	const subscriber = useSubscriber();
 
-	const subscribeToContextor = (
+	//
+	// `subscribe` creates a closure around `dispatch`, which is defined later;
+	// `subscribe` itself is then used in the reducer initialisation which returns `dispatch`.
+	// It doesn't matter that `subscribe` isn't memoised here because only its initial value
+	// is ever used (in the reducer initialisation).
+	//
+	const subscribe = (
 		(newContextor: Contextor<T>): State<T> =>
 		{
 			const [initialValue, unsubscribe] = (
@@ -105,32 +213,14 @@ export function useContextor<T>(contextor: Contextor<T>): T
 				)
 			);
 
-			return { value: initialValue, unsubscribe };
+			return { value: initialValue, unsubscribe, subscribe };
 		}
 	);
 
-	const [{ value: currentValue }, dispatch] = (
-		useReducer(
-			(state: State<T>, action: Action<T>): State<T> =>
-			{
-				const { value, unsubscribe } = state;
-
-				switch (action.type)
-				{
-					case "setValue":
-						return { value: action.value, unsubscribe };
-					case "unsetContextor":
-						unsubscribe?.();
-						return { value };
-					case "setContextor":
-						return subscribeToContextor(action.contextor);
-					default:
-						return state;
-				}
-			},
-			contextor,
-			(initialContextor) => subscribeToContextor(initialContextor)
-		)
+	const [{ value: currentValue }, dispatch] = useReducer(
+		contextorReducer as Reducer<State<T>, Action<T>>,
+		contextor,
+		subscribe
 	);
 
 	useEffectOnUpdate(
@@ -146,8 +236,9 @@ export function useContextor<T>(contextor: Contextor<T>): T
 }
 
 type State<T> = {
-	value: T;
-	unsubscribe?: Unsubscriber;
+	value:			T;
+	unsubscribe?:	Unsubscriber;
+	subscribe:		(contextor: Contextor<T>) => State<T>
 };
 type Action<T> = (
 	| { type: "setValue", value: T }
@@ -166,6 +257,6 @@ function useEffectOnUpdate(effect: () => (() => void), deps: unknown[])
 				return effect();
 			hasMounted.current = true;
 		},
-		[effect, hasMounted, ...deps]	// eslint-disable-line react-hooks/exhaustive-deps
+		[hasMounted, ...deps]	// eslint-disable-line react-hooks/exhaustive-deps
 	);
 }

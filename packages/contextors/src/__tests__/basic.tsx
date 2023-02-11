@@ -15,10 +15,13 @@ test("example", () =>
 		const UserContext		= createContext({ id: 1, firstName: "John", lastName: "Smith" }, { contextId: "" });
 		const selectUserName	= createContextor([UserContext], ([user]) => `${user.firstName} ${user.lastName}`);
 
-		const UserNameComponent = () =>
-			<div data-testid="test">{ useContextor(selectUserName) }</div>
+		const UserNameComponent = ({ testId } : { testId: string }) =>
+			<div data-testid={testId}>{ useContextor(selectUserName) }</div>
 
-		render(<UserNameComponent/>);
+		render(<UserContext.Provider value={{ id: 1, firstName: "John", lastName: "Smith" }}>
+			<UserNameComponent testId="test" />
+			<UserNameComponent testId="tet2" />
+		</UserContext.Provider>);
 
 		expect(screen.getByTestId("test")).toHaveTextContent("John Smith");
 	});
@@ -61,20 +64,28 @@ test("basic test", () =>
 			{ id: "4", name: "Owner" },
 		];
 
-		const UserSummary = () =>
+		const UserSummary = ({ testId } : { testId: string }) =>
 			{
 				const summary = useContextor(selectUserSummary);
-				console.info(summary);
-				return <span data-testid="summary">{summary}</span>
+				return <span data-testid={testId}>{summary}</span>
 			}
 
 		render(
 			<GroupsContext.Provider value={groups}>
 				<UserContext.Provider value={user1}>
-					<UserSummary/>
+					<UserSummary testId="summary1"/>
+				</UserContext.Provider>
+				<UserContext.Provider value={user2}>
+					<UserSummary testId="summary2"/>
+
+					<UserContext.Provider value={user1}>
+						<UserSummary testId="summary3"/>
+					</UserContext.Provider>
 				</UserContext.Provider>
 			</GroupsContext.Provider>
 		);
 
-		expect(screen.getByTestId("summary")).toHaveTextContent("John Smith (Admin, Tester)");
+		expect(screen.getByTestId("summary1")).toHaveTextContent("John Smith (Admin, Tester)");
+		expect(screen.getByTestId("summary2")).toHaveTextContent("Mary Moore (Group Admin)");
+		expect(screen.getByTestId("summary3")).toHaveTextContent("John Smith (Admin, Tester)");
 	});
