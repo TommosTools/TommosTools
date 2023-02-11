@@ -10,12 +10,12 @@ import {
 } from "./ContextInstance";
 import {
 	Context,
-	CONTEXTO_KEY,
 	Listener,
 	Subscriber,
 } from "./types";
 import {
 	assertInternalContext,
+	CONTEXTO_KEY,
 	getContextId,
 } from "./types/internal";
 

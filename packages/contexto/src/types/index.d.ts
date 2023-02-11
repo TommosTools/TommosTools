@@ -6,10 +6,10 @@ import type {
 	RefAttributes,
 } from "react";
 
-const CONTEXTO_MAIN_KEY = Symbol("Contexto");
-export const CONTEXTO_KEY = Symbol("CONTEXTO_KEY");
+export const CONTEXTO_MAIN_KEY: unique symbol;
+export const CONTEXTO_KEY: unique symbol;
 
-export const INHERIT = Symbol("INHERIT");
+export const INHERIT: unique symbol;
 
 export type ContextId = string;
 

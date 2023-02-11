@@ -15,4 +15,9 @@ export {
 	useBridgeValue,
 } from "./BridgeProvider";
 
+export {
+	CONTEXTO_KEY,
+	INHERIT,
+} from "./types/internal";
+
 export { useSubscriber } from "./api";

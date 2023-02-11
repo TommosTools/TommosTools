@@ -15,13 +15,13 @@ import {
 	SubscriptionContext,
 	ContextTypes,
 	ValueUpdater,
-	CONTEXTO_KEY,
 } from "./types";
 import {
 	assertInternalContext,
 	getContextId,
 	asInternalContexts,
 	assertSubscriptionContext,
+	CONTEXTO_KEY,
 } from "./types/internal";
 import type { InternalContextsFor } from "./types/internal";
 import { useIsomorphicLayoutEffect } from "./utils";

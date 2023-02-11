@@ -5,8 +5,8 @@
 import React, { ReactNode, useEffect, useState } from "react";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import { createContext, createProxyContext, useContext, useContexts, useContextUpdate } from "..";
-import { Context, INHERIT } from "../types/";
+import { createContext, createProxyContext, useContext, useContexts, useContextUpdate, INHERIT } from "..";
+import { Context } from "../types/";
 
 const Render = <T,>({ context, testId }: { context: Context<T>, testId?: string }) =>
 	<div>

@@ -18,7 +18,7 @@
   "private": false,
   "scripts": {
     "compile": "run-s compile:*",
-    "precompile": "mkdir -p dist/common src/targetPlatform && cp src/types/index.ts dist/common/index.d.ts",
+    "precompile": "mkdir -p dist/common src/targetPlatform && cp src/types/index.d.ts dist/common/index.d.ts",
     "precompile:dom": "cp -f src/platforms/dom/* src/targetPlatform",
     "compile:dom": "tsup --env.targetPlatform dom src/index.ts",
     "precompile:native": "cp -f src/platforms/native/* src/targetPlatform",

@@ -6,9 +6,11 @@ import type {
 	ContextTuple,
 	SubscriptionContext,
 } from ".";
-import { CONTEXTO_KEY } from ".";
 import type { ContextInstance } from "../ContextInstance";
 import { IS_NON_PRODUCTION_ENVIRONMENT } from "../env";
+
+export const CONTEXTO_KEY		= Symbol.for("CONTEXTO_KEY");
+export const INHERIT			= Symbol.for("INHERIT");
 
 export type InternalContext<T> = Context<T> & {
 	readonly [CONTEXTO_KEY]:	{

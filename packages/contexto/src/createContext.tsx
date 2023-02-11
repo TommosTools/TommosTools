@@ -35,11 +35,9 @@ import type {
 	SubscriptionContext,
 } from "./types";
 import {
+	ContextInstanceStack,
 	CONTEXTO_KEY,
 	INHERIT,
-} from "./types";
-import {
-	ContextInstanceStack,
 	InternalContext,
 } from "./types/internal";
 import { useIsomorphicLayoutEffect } from "./utils";
