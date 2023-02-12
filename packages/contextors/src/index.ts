@@ -12,21 +12,39 @@ import {
 	useRef,
 } from "react";
 
-type ContextorInput<T> = (
+type ContextorInput<T, Arg> = (
 	| Context<T>
-	| Contextor<T>
+	| Contextor<T, Arg, false>
 );
 
 type Tuple<T> = [] | [T, ...T[]];
 
-type TypesFor<Inputs extends Tuple<ContextorInput<unknown>>> = Inputs extends infer InputsT ? {
+type TypesFor<Inputs extends Tuple<ContextorInput<unknown, unknown>>> = Inputs extends infer InputsT ? {
 	[Index in keyof InputsT]: (
-		InputsT[Index] extends ContextorInput<infer T> ? T : InputsT[Index]
+		InputsT[Index] extends ContextorInput<infer T, any> ? T : InputsT[Index]
 	)
 } : never;
 
+type ArgFor<Inputs extends Tuple<ContextorInput<unknown, unknown>>> =
+	Inputs extends [ContextorInput<any, infer Arg>]
+		?	(Arg extends undefined ? {} : Arg)
+		:	Inputs extends [ContextorInput<any, infer Arg>, ...infer InputsT]
+				?	(InputsT extends Tuple<ContextorInput<unknown, unknown>> ? ArgFor<InputsT> : never)
+					& (Arg extends undefined ? {} : Arg)
+				:	never;
+
+type Contextor<T, Arg, Bound extends boolean, Inputs extends Tuple<ContextorInput<unknown, Arg>> = any> = (
+	Bound extends true
+		?	Arg extends undefined
+				?	[RawContextor<T, Arg, Inputs>, Arg] | RawContextor<T, Arg, Inputs>
+				:	[RawContextor<T, Arg, Inputs>, Arg]
+		:	RawContextor<T, Arg, Inputs>
+)
+
+type OptionalIfUndefined<Arg> = Arg extends undefined ? [arg?: Arg] : [arg: Arg];
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-class Contextor<T, Inputs extends Tuple<ContextorInput<unknown>> = any>
+class RawContextor<T, Arg, Inputs extends Tuple<ContextorInput<unknown, Arg>> = any>
 {
 	readonly contexts: Set<Context<unknown>>;
 
@@ -39,14 +57,23 @@ class Contextor<T, Inputs extends Tuple<ContextorInput<unknown>> = any>
 
 		for (const input of inputs)
 		{
-			if (input instanceof Contextor)
+			if (isContextor(input))
 				input.contexts.forEach((context) => this.contexts.add(context));
 			else	// input is a Context
 				this.contexts.add(input);
 		}
 	}
 
-	subscribe(subscriber: Subscriber, onChange: Listener<T>): [T, Unsubscriber]
+	withArg(arg: Arg): Contextor<T, Arg, true, Inputs>;
+	withArg(...args: OptionalIfUndefined<Arg>): Contextor<T, Arg, true, Inputs>;
+	withArg(arg?: Arg): Contextor<T, Arg, true, Inputs>
+	{
+		return [this, arg] as unknown as Contextor<T, Arg, true, Inputs>;
+	}
+
+	subscribe(subscriber: Subscriber, onChange: Listener<T>, arg: Arg): [T, Unsubscriber];
+	subscribe(subscriber: Subscriber, onChange: Listener<T>, ...args: OptionalIfUndefined<Arg>): [T, Unsubscriber];
+	subscribe(subscriber: Subscriber, onChange: Listener<T>, arg?: Arg): [T, Unsubscriber]
 	{
 		const { inputs } = this;
 
@@ -55,7 +82,7 @@ class Contextor<T, Inputs extends Tuple<ContextorInput<unknown>> = any>
 
 		const inputValues = (
 			inputs.map(
-				<V>(input: ContextorInput<V>, i: number) =>
+				<V>(input: ContextorInput<V, Arg>, i: number) =>
 				{
 					const updateValue = (
 						(newValue: V) =>
@@ -66,8 +93,8 @@ class Contextor<T, Inputs extends Tuple<ContextorInput<unknown>> = any>
 					);
 
 					const [initialValue, unsubscribe] = (
-						input instanceof Contextor
-							?	input.subscribe(subscriber, updateValue)
+						isContextor(input)
+							?	input.subscribe(subscriber, updateValue, arg!)
 							:	subscriber(input, updateValue)
 					);
 
@@ -149,6 +176,11 @@ class Contextor<T, Inputs extends Tuple<ContextorInput<unknown>> = any>
 	}
 }
 
+export function isContextor<T, Arg, Bound extends boolean>(value: unknown): value is Contextor<T, Arg, Bound>
+{
+	return (value instanceof RawContextor) || (value instanceof Array && value[0] instanceof RawContextor);
+}
+
 type TerminalCache<T> = { value: T, keys: unknown[] };
 type NestedCache<T>	= WeakMap<object, NestedCache<T> | TerminalCache<T>>;
 
@@ -167,15 +199,15 @@ const shallowEqual = (array1: unknown[], array2: unknown[]) => (
 	|| ((array1.length === array2.length) && array1.every((keyComponent, i) => keyComponent === array2[i]))
 );
 
-export function createContextor<T, Inputs extends Tuple<ContextorInput<unknown>>>(
+export function createContextor<T, Inputs extends Tuple<ContextorInput<unknown, unknown>>>(
 	inputs: Inputs,
 	combiner: (inputs: TypesFor<Inputs>) => T
-): Contextor<T>
+): Contextor<T, ArgFor<Inputs>, false>
 {
-	return new Contextor(inputs, combiner);
+	return new RawContextor(inputs, combiner);
 }
 
-function contextorReducer<T>(state: State<T>, action: Action<T>): State<T>
+function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>): State<T, Arg>
 {
 	const { value, unsubscribe, subscribe } = state;
 
@@ -193,7 +225,7 @@ function contextorReducer<T>(state: State<T>, action: Action<T>): State<T>
 	}
 }
 
-export function useContextor<T>(contextor: Contextor<T>): T
+export function useContextor<T, Arg>(contextor: Contextor<T, Arg, true>): T
 {
 	const subscriber = useSubscriber();
 
@@ -204,12 +236,18 @@ export function useContextor<T>(contextor: Contextor<T>): T
 	// is ever used (in the reducer initialisation).
 	//
 	const subscribe = (
-		(newContextor: Contextor<T>): State<T> =>
+		(newContextor: Contextor<T, Arg, true>): State<T, Arg> =>
 		{
+			const [rawContextor, arg] = (
+				(newContextor instanceof RawContextor)
+					?	[newContextor, undefined]	// Arg extends undefined -- allow raw contextor
+					:	newContextor
+			);
 			const [initialValue, unsubscribe] = (
-				newContextor.subscribe(
+				rawContextor.subscribe(
 					subscriber,
-					(updatedValue: T) => dispatch({ type: "setValue", value: updatedValue })
+					(updatedValue: T) => dispatch({ type: "setValue", value: updatedValue }),
+					arg!	// nb: arg may be undefined here but only if Arg extends undefined
 				)
 			);
 
@@ -218,7 +256,7 @@ export function useContextor<T>(contextor: Contextor<T>): T
 	);
 
 	const [{ value: currentValue }, dispatch] = useReducer(
-		contextorReducer as Reducer<State<T>, Action<T>>,
+		contextorReducer as Reducer<State<T, Arg>, Action<T, Arg>>,
 		contextor,
 		subscribe
 	);
@@ -235,14 +273,14 @@ export function useContextor<T>(contextor: Contextor<T>): T
 	return currentValue;
 }
 
-type State<T> = {
+type State<T, Arg> = {
 	value:			T;
 	unsubscribe?:	Unsubscriber;
-	subscribe:		(contextor: Contextor<T>) => State<T>
+	subscribe:		(contextor: Contextor<T, Arg, true>) => State<T, Arg>
 };
-type Action<T> = (
+type Action<T, Arg> = (
 	| { type: "setValue", value: T }
-	| { type: "setContextor", contextor: Contextor<T> }
+	| { type: "setContextor", contextor: Contextor<T, Arg, true> }
 	| { type: "unsetContextor" }
 );
 
