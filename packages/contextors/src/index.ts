@@ -50,14 +50,14 @@ class RawContextor<T, Arg, Inputs extends Tuple<ContextorInput<unknown, Arg>> = 
 
 	constructor(
 		readonly inputs:	Inputs,
-		readonly combiner:	(inputs: TypesFor<Inputs>) => T
+		readonly combiner:	(inputs: TypesFor<Inputs>, arg?: Arg) => T
 	)
 	{
 		this.contexts = new Set();
 
 		for (const input of inputs)
 		{
-			if (isContextor(input))
+			if (input instanceof RawContextor)
 				input.contexts.forEach((context) => this.contexts.add(context));
 			else	// input is a Context
 				this.contexts.add(input);
@@ -88,12 +88,12 @@ class RawContextor<T, Arg, Inputs extends Tuple<ContextorInput<unknown, Arg>> = 
 						(newValue: V) =>
 						{
 							inputValues[i] = newValue;
-							onChange(this.cachedCombiner(inputValues));
+							onChange(this.cachedCombiner(inputValues, arg!));
 						}
 					);
 
 					const [initialValue, unsubscribe] = (
-						isContextor(input)
+						input instanceof RawContextor
 							?	input.subscribe(subscriber, updateValue, arg!)
 							:	subscriber(input, updateValue)
 					);
@@ -105,7 +105,7 @@ class RawContextor<T, Arg, Inputs extends Tuple<ContextorInput<unknown, Arg>> = 
 			) as unknown as TypesFor<Inputs>
 		);
 
-		const initialValue = this.cachedCombiner(inputValues);
+		const initialValue = this.cachedCombiner(inputValues, arg!);
 
 		return [initialValue, unsubscribeAll];
 	}
@@ -115,7 +115,7 @@ class RawContextor<T, Arg, Inputs extends Tuple<ContextorInput<unknown, Arg>> = 
 	// Arbitrary object scoped to the Contextor that can be used to index a WeakMap
 	private TerminalCacheKey = {};
 
-	private cachedCombiner(inputValues: TypesFor<Inputs>): T
+	private cachedCombiner(inputValues: TypesFor<Inputs>, arg: Arg): T
 	{
 		//
 		// Caching of combined values using nested WeakMaps.
@@ -169,8 +169,9 @@ class RawContextor<T, Arg, Inputs extends Tuple<ContextorInput<unknown, Arg>> = 
 			// Cached value was found
 			return terminalCache.value;
 		}
+
 		// Recompute value, and store in cache
-		const value = this.combiner(inputValues);
+		const value = this.combiner(inputValues, arg);
 		cacheRef.set(this.TerminalCacheKey, { keys: [...inputValues], value });
 		return value;
 	}
@@ -199,12 +200,12 @@ const shallowEqual = (array1: unknown[], array2: unknown[]) => (
 	|| ((array1.length === array2.length) && array1.every((keyComponent, i) => keyComponent === array2[i]))
 );
 
-export function createContextor<T, Inputs extends Tuple<ContextorInput<unknown, unknown>>>(
+export function createContextor<T, Arg, Inputs extends Tuple<ContextorInput<unknown, unknown>>>(
 	inputs: Inputs,
-	combiner: (inputs: TypesFor<Inputs>) => T
-): Contextor<T, ArgFor<Inputs>, false>
+	combiner: (inputs: TypesFor<Inputs>, arg?: Arg) => T
+): Contextor<T, ArgFor<Inputs> & Arg extends undefined ? {} : Arg, false>
 {
-	return new RawContextor(inputs, combiner);
+	return new RawContextor<T, ArgFor<Inputs> & Arg extends undefined ? {} : Arg>(inputs, combiner);
 }
 
 function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>): State<T, Arg>
