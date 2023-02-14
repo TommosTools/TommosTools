@@ -18,6 +18,10 @@ type ContextorInput<T, Arg> = (
 	| Contextor<T, Arg, false>
 );
 
+type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) extends (x: infer R) => any ? R : never;
+
+type xXX = UnionToIntersection<{ a: number } | { b: string }>;
+
 type Tuple<T> = [] | [T, ...T[]];
 
 type TypesFor<Inputs extends Tuple<ContextorInput<unknown, any>>> = Inputs extends infer InputsT ? {
@@ -26,6 +30,16 @@ type TypesFor<Inputs extends Tuple<ContextorInput<unknown, any>>> = Inputs exten
 	)
 } : never;
 
+type ArgsFor<Inputs extends Tuple<ContextorInput<any, any>>> = Inputs extends infer InputsT ? {
+	[Index in keyof InputsT]: (
+		InputsT[Index] extends ContextorInput<any, infer Arg> ? Arg : InputsT[Index]
+	)
+} : never;
+
+type ArgFor<Inputs extends Tuple<ContextorInput<unknown, any>>> =
+	UnionToIntersection<ArgsFor<Inputs>[number]>;
+
+/*
 type ArgFor<Inputs extends Tuple<ContextorInput<unknown, any>>> =
 	Inputs extends [ContextorInput<any, infer Arg>]
 		?	(Arg extends undefined ? {} : Arg)
@@ -33,6 +47,7 @@ type ArgFor<Inputs extends Tuple<ContextorInput<unknown, any>>> =
 				?	(InputsT extends Tuple<ContextorInput<unknown, unknown>> ? ArgFor<InputsT> : never)
 					& (Arg extends undefined ? {} : Arg)
 				:	never;
+*/
 
 type Contextor<T, Arg, Bound extends boolean, Inputs extends Tuple<ContextorInput<unknown, Arg>> = any> = (
 	Bound extends true
@@ -207,7 +222,8 @@ const shallowEqual = (array1: unknown[], array2: unknown[]) => (
 const Context1 = createContext("ASDFAS");
 const Context2 = createContext(33);
 const CX1 = createContextor<number,number,[Context<string>]>([Context1], (s: [string], arg: number) => arg);
-type JKJKL = ArgFor<[typeof Context1,]>;
+type KJKJL = ArgsFor<[typeof CX1]>;
+type JKJKL = ArgFor<[typeof CX1]>;
 const adsfadsf = createContextor([Context1, Context2], ([v1,v2]: [string,number], arg: { a: number }) => null)
 
 export function createContextor<T, Arg, Inputs extends Tuple<ContextorInput<any, Arg>>>(
@@ -216,7 +232,7 @@ export function createContextor<T, Arg, Inputs extends Tuple<ContextorInput<any,
 		Arg extends undefined
 			?	(inputs: TypesFor<Inputs>, arg?: Arg) => T
 			:	(inputs: TypesFor<Inputs>, arg: Arg) => T
-)//: Contextor<T, ArgFor<Inputs> & Arg, false, Inputs>
+): Contextor<T, Arg & ArgFor<Inputs>, false, Inputs>
 {
 	return new RawContextor<T, ArgFor<Inputs>>(inputs, combiner);
 }
