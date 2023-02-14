@@ -1,4 +1,5 @@
 import {
+	createContext,
 	Listener,
 	Subscriber,
 	Unsubscriber,
@@ -19,13 +20,13 @@ type ContextorInput<T, Arg> = (
 
 type Tuple<T> = [] | [T, ...T[]];
 
-type TypesFor<Inputs extends Tuple<ContextorInput<unknown, unknown>>> = Inputs extends infer InputsT ? {
+type TypesFor<Inputs extends Tuple<ContextorInput<unknown, any>>> = Inputs extends infer InputsT ? {
 	[Index in keyof InputsT]: (
 		InputsT[Index] extends ContextorInput<infer T, any> ? T : InputsT[Index]
 	)
 } : never;
 
-type ArgFor<Inputs extends Tuple<ContextorInput<unknown, unknown>>> =
+type ArgFor<Inputs extends Tuple<ContextorInput<unknown, any>>> =
 	Inputs extends [ContextorInput<any, infer Arg>]
 		?	(Arg extends undefined ? {} : Arg)
 		:	Inputs extends [ContextorInput<any, infer Arg>, ...infer InputsT]
@@ -44,13 +45,16 @@ type Contextor<T, Arg, Bound extends boolean, Inputs extends Tuple<ContextorInpu
 type OptionalIfUndefined<Arg> = Arg extends undefined ? [arg?: Arg] : [arg: Arg];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-class RawContextor<T, Arg, Inputs extends Tuple<ContextorInput<unknown, Arg>> = any>
+class RawContextor<T, Arg, Inputs extends Tuple<ContextorInput<any, Arg>> = any>
 {
 	readonly contexts: Set<Context<unknown>>;
 
 	constructor(
 		readonly inputs:	Inputs,
-		readonly combiner:	(inputs: TypesFor<Inputs>, arg?: Arg) => T
+		readonly combiner:
+			Arg extends undefined
+				?	(inputs: TypesFor<Inputs>, arg?: Arg) => T
+				:	(inputs: TypesFor<Inputs>, arg: Arg) => T
 	)
 	{
 		this.contexts = new Set();
@@ -200,12 +204,21 @@ const shallowEqual = (array1: unknown[], array2: unknown[]) => (
 	|| ((array1.length === array2.length) && array1.every((keyComponent, i) => keyComponent === array2[i]))
 );
 
-export function createContextor<T, Arg, Inputs extends Tuple<ContextorInput<unknown, unknown>>>(
+const Context1 = createContext("ASDFAS");
+const Context2 = createContext(33);
+const CX1 = createContextor<number,number,[Context<string>]>([Context1], (s: [string], arg: number) => arg);
+type JKJKL = ArgFor<[typeof Context1,]>;
+const adsfadsf = createContextor([Context1, Context2], ([v1,v2]: [string,number], arg: { a: number }) => null)
+
+export function createContextor<T, Arg, Inputs extends Tuple<ContextorInput<any, Arg>>>(
 	inputs: Inputs,
-	combiner: (inputs: TypesFor<Inputs>, arg?: Arg) => T
-): Contextor<T, ArgFor<Inputs> & Arg extends undefined ? {} : Arg, false>
+	combiner:
+		Arg extends undefined
+			?	(inputs: TypesFor<Inputs>, arg?: Arg) => T
+			:	(inputs: TypesFor<Inputs>, arg: Arg) => T
+)//: Contextor<T, ArgFor<Inputs> & Arg, false, Inputs>
 {
-	return new RawContextor<T, ArgFor<Inputs> & Arg extends undefined ? {} : Arg>(inputs, combiner);
+	return new RawContextor<T, ArgFor<Inputs>>(inputs, combiner);
 }
 
 function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>): State<T, Arg>
