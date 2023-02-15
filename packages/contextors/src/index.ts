@@ -219,12 +219,15 @@ const shallowEqual = (array1: unknown[], array2: unknown[]) => (
 	|| ((array1.length === array2.length) && array1.every((keyComponent, i) => keyComponent === array2[i]))
 );
 
-const Context1 = createContext("ASDFAS");
-const Context2 = createContext(33);
-const CX1 = createContextor<number,number,[Context<string>]>([Context1], (s: [string], arg: number) => arg);
+const Context1 = createContext({ a: 5 });
+const Context2 = createContext({ b: 33 });
+const CX1 = createContextor([Context1], (s, arg: { c: number }) => arg);
+const CX2 = createContextor([Context2], (s, arg: { d: string }) => arg);
 type KJKJL = ArgsFor<[typeof CX1]>;
 type JKJKL = ArgFor<[typeof CX1]>;
-const adsfadsf = createContextor([Context1, Context2], ([v1,v2]: [string,number], arg: { a: number }) => null)
+const adsfadsf = createContextor([Context1, Context2], ([v1,v2], arg: { a: number }) => null)
+const ctxinput = createContextor<null, undefined, [RawContextor<null, undefined, [Context<{c:number}>]>]>([CX1], ([v1]) => null)
+const kkj = createContextor([CX1, CX2], ([v1,v2], arg) => null)
 
 export function createContextor<T, Arg, Inputs extends Tuple<ContextorInput<any, Arg>>>(
 	inputs: Inputs,
@@ -232,9 +235,9 @@ export function createContextor<T, Arg, Inputs extends Tuple<ContextorInput<any,
 		Arg extends undefined
 			?	(inputs: TypesFor<Inputs>, arg?: Arg) => T
 			:	(inputs: TypesFor<Inputs>, arg: Arg) => T
-): Contextor<T, Arg & ArgFor<Inputs>, false, Inputs>
+): Contextor<T, Arg, false, Inputs>
 {
-	return new RawContextor<T, ArgFor<Inputs>>(inputs, combiner);
+	return new RawContextor(inputs, combiner);
 }
 
 function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>): State<T, Arg>
