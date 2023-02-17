@@ -58,3 +58,8 @@ export function useSubscriber(): Subscriber
 		[instances]
 	);
 }
+
+export function isContext(value: unknown): value is Context<unknown>
+{
+	return value instanceof Object && CONTEXTO_KEY in value;
+}

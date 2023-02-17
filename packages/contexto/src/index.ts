@@ -20,4 +20,7 @@ export {
 	INHERIT,
 } from "./types/internal";
 
-export { useSubscriber } from "./api";
+export {
+	isContext,
+	useSubscriber
+} from "./api";

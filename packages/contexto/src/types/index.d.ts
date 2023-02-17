@@ -195,3 +195,4 @@ export declare function useBridgeValue(contexts: ContextTuple): Contexto;
 /** API access: not for general consumption. */
 export type Subscriber = <T>(context: Context<T>, callback: Listener<T>) => [T, Unsubscriber];
 export declare function useSubscriber(): Subscriber;
+export declare function isContext(value: unknown): value is Context<unknown>;
