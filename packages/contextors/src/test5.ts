@@ -35,3 +35,7 @@ const g0 = createContext(1234);
 const f0 = makeF([g0], ([g0val], arg: { a: number }) => arg.a + g0val);
 const f1 = makeF([], (values, arg: { b: number }) => arg.toString());
 const f2 = makeF([f0,f1,g0], (values: [number,string,number], arg: { a: number, b: number}) => null);
+
+const Context1 = createContext({ a: 5 });
+const CX1 = makeF([Context1], (s, arg: { c: number }) => arg);
+const ctxinput = makeF([CX1], ([v1], arg: { c: number }) => null);
