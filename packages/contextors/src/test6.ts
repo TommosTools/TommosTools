@@ -7,25 +7,25 @@ class RawContextor<T, Arg, Inputs extends Tuple<ContextorInput<Arg, any>>>
 {
     constructor(
         private inputs: Inputs,
-        private combiner: (values: OutputsFor<Inputs>, arg: Arg) => T
+        private combiner: (values: OutputsFor<Arg, Inputs>, arg: Arg) => T
     )
     {}
 
     call(arg: Arg): T
     {
-        const values = this.inputs.map(input => isContext(input) ? useContext(input) : input.call(arg)) as OutputsFor<Inputs>;
+        const values = this.inputs.map(input => isContext(input) ? useContext(input) : input.call(arg)) as OutputsFor<Arg, Inputs>;
         return this.combiner(values, arg);    
     }
 }
 type ContextorInput<T, Arg> = Context<T> | RawContextor<T, Arg, any>
 
-type OutputFor<Input> = Input extends ContextorInput<infer T, any> ? T : never;
+type OutputFor<Arg, Input> = Input extends ContextorInput<infer T, Arg> ? T : never;
 
-type OutputsFor<TT> = { [K in keyof TT]: OutputFor<TT[K]> };
+type OutputsFor<Arg, TT> = { [K in keyof TT]: OutputFor<Arg, TT[K]> };
 
 function createContextor<T, Arg, Inputs extends Tuple<ContextorInput<any, Arg>>>(
 	inputs: Inputs,
-	combiner: (values: OutputsFor<Inputs>, arg: Arg) => T
+	combiner: (values: OutputsFor<Arg, Inputs>, arg: Arg) => T
 ): RawContextor<T, Arg, Inputs>
 {
     return new RawContextor(inputs, combiner);
