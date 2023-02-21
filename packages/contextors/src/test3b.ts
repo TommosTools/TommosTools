@@ -14,17 +14,32 @@ type WrappedOrCombiner<Output, Arg> = Wrapped<Output> | Combiner<Output, Arg>
 type OutputFor<T>   = T extends WrappedOrCombiner<infer Output, {}> ? Output : never;
 type OutputsFor<TT> = { [K in keyof TT]: OutputFor<TT[K]> };
 
-function makeCombiner<Inputs extends Tuple<WrappedOrCombiner<{}, Arg>>, Output, Arg>(
-	inputs: Inputs,
-	combine: (values: OutputsFor<Inputs>, arg: Arg) => Output
-): Combiner<Output, Arg>
+type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) extends (x: infer R) => any ? R : never;
+
+
+type ArgsFor<Inputs extends Tuple<WrappedOrCombiner<{}, {}>>> = Inputs extends infer InputsT ? {
+	[Index in keyof InputsT]: (
+		InputsT[Index] extends WrappedOrCombiner<any, infer Arg> ? Arg : InputsT[Index]
+	)
+} : never;
+
+type ArgFor<Inputs extends Tuple<WrappedOrCombiner<{}, {}>>> =
+	UnionToIntersection<ArgsFor<Inputs>[number]>;
+
+type SingleArgFor<Input> =
+    Input extends Combiner<{}, infer Arg> ? Arg : {};
+
+function makeCombiner<Output, Inputs extends WrappedOrCombiner<{}, Arg>, Arg extends {}>(
+	combine: (arg: Arg & SingleArgFor<Inputs>, values: OutputFor<Inputs>) => Output,
+    inputs: Inputs
+): Combiner<Output, Arg & SingleArgFor<Inputs>>
 {
-	return (arg: Arg) => {
-		const values = inputs.map(input => isWrapped(input) ? unwrap(input) : input(arg));
-		return combine(values as OutputsFor<Inputs>, arg);
+	return (arg: Arg & SingleArgFor<Inputs>) => {
+		const values = (isWrapped(inputs) ? unwrap(inputs) : inputs(arg));
+		return combine(arg, values as OutputFor<Inputs>);
 	}
 }
 
 const Context1 = wrap({ a: 5 });
-const CX1 = makeCombiner([Context1], (s, arg: { c: number }) => arg);
-const ctxinput = makeCombiner([CX1], ([v1], arg: { c: number }) => null);
+const CX1 = makeCombiner((arg: { c: number }, s) => 3, Context1);
+const ctxinput = makeCombiner((arg, v1) => null, CX1);
