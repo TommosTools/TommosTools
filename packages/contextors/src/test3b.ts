@@ -14,25 +14,23 @@ type OutputFor<Input> = Input extends EvaluatorOrWrappedValue<infer Output, {}> 
 type ArgFor<Input>    = Input extends Evaluator<{}, infer Arg> ? Arg : {}; // if this is `any` then it passes but Arg is discarded
 
 type ExtendArgFor<Input, Arg> =
-    Input extends Evaluator<{}, infer EvaluatorArg>
-        ?   EvaluatorArg & Arg
-        :   Arg;
+    Input extends Evaluator<{}, infer EvaluatorArg> ? EvaluatorArg & Arg : Arg;
 
 function makeEvaluator<
-    EvalFn extends (value: any, arg: any) => any
+    Output,
+    Input extends EvaluatorOrWrappedValue<{}, {}>,
+    Arg extends ArgFor<Input> = ArgFor<Input>
 >(
-    input: EvalFn extends (value: infer T, arg: infer Arg) => any ? EvaluatorOrWrappedValue<T, Arg> : never,
-	evaluate: EvalFn
-)//: EvalFn extends (value: any, arg: infer Arg) => infer Output ? Evaluator<Output, Arg> : never
+    input: Input,
+	evaluate: (arg: ArgFor<Input>, value: OutputFor<Input>) => Output
+): Evaluator<Output, Arg>
 {
-    type Arg    = EvalFn extends (value: any, arg: infer Arg) => any ? Arg : never;
-    type Output = EvalFn extends (value: any, arg: any) => infer Output ? Output : never;
-	return (arg: Arg): Output => {
+	return (arg) => {
 		const value = (isWrapped(input) ? unwrap(input) : input(arg));
-		return evaluate(value, arg);
+		return evaluate(arg, value as OutputFor<Input>);
 	}
 }
 
 const wrappedValue1 = wrap({ a: 5 });
-const evaluator1 = makeEvaluator(wrappedValue1, (s, arg: { c: number }) => 3);
-const ctxinput = makeEvaluator(evaluator1, (v1, arg) => null);
+const evaluator1 = makeEvaluator(wrappedValue1, (arg: { c: number }, s) => 3);
+const ctxinput = makeEvaluator(evaluator1, (arg, v1) => null);
