@@ -53,15 +53,11 @@ function makeF<Inputs extends Tuple<Context<any> | F<any, any>>, Arg extends Com
     inputSources: Inputs,
     converter: (inputs: OutputsOf<Inputs>, arg: Arg) => Out
 ): F<Arg, Out>
-// function makeF0<Ins extends Tuple<any>, Args extends Tuple<any>, Arg extends UnionToIntersection<ArgsFor<Args>[keyof ArgsFor<Args>]>, Out>(
-//     inputSources: InputsFor<Ins, Args>,
-//     converter: (inputs: Ins, arg: Arg) => Out
-// ): F<Arg, Out>
 {
     return (arg: Arg) =>
         {
             const inputs = (inputSources as any[]).map((source) =>
-                isContext(source) ? useContext(source) : source(arg)) as Ins;
+                isContext(source) ? useContext(source) : source(arg)) as OutputsOf<Inputs>;
 
             return converter(inputs, arg);
         }
