@@ -2,7 +2,7 @@ import { Context, useContext, isContext, createContext } from "contexto";
 
 type Tuple<T> = [] | [T, ...T[]];
 
-type F<Arg, Out, Optional> = ((arg: Arg) => Out) | (true extends Optional ? () => Out : never);
+type F<Arg, Out, Optional> = true extends Optional ? (arg?: Arg) => Out : (arg: Arg) => Out;
 
 type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) extends (x: infer R) => any ? R : never;
 
@@ -11,7 +11,7 @@ type CompatibleArgsFor<Inputs extends Tuple<Context<any> | F<any, any, boolean>>
         ArgFor<Inputs[Index]>
 }
 
-type ArgFor<K> = K extends F<infer Arg, any, boolean> ? Arg : never;
+type ArgFor<K> = K extends F<infer Arg, any, infer Optional> ? Arg | (true extends Optional ? undefined : never) : never;
 
 type PredicateWrap<T> =
 {
@@ -57,6 +57,23 @@ type OutputsOf<Inputs extends Tuple<Context<any> | F<any, any, boolean>>> = {
 type AreAllOptional<Inputs> = Inputs extends Tuple<Context<any> | F<any, any, true>> ? true : false;
 
 function makeF<
+    Inputs extends Tuple<Context<any> | F<any, any, true>>,
+    Arg extends CompatibleArgFor<Inputs>,
+    Out
+>(
+    inputSources: Inputs,
+    converter: (inputs: OutputsOf<Inputs>, arg?: Arg) => Out
+): F<Arg, Out, true>;
+
+function makeF<
+    Inputs extends Tuple<Context<any> | F<any, any, boolean>>,
+    Arg extends CompatibleArgFor<Inputs>,
+    Out
+>(
+    inputSources: Inputs,
+    converter: (inputs: OutputsOf<Inputs>, arg: Arg) => Out
+): F<Arg, Out, false>;
+function makeF<
     Inputs extends Tuple<Context<any> | F<any, any, boolean>>,
     Arg extends CompatibleArgFor<Inputs>,
     Out,
@@ -64,7 +81,7 @@ function makeF<
 >(
     inputSources: Inputs,
     converter: (inputs: OutputsOf<Inputs>, arg: Arg) => Out
-): F<Arg, Out, Optional>
+)
 {
     return ((arg: Arg) =>
         {
