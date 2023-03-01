@@ -4,13 +4,13 @@ type Tuple<T> = [] | [T, ...T[]];
 
 type F<Arg, Out, Optional> =
     true extends Optional
-        ?   ((arg?: Arg) => Out) & { optional: void }
-        :   (arg: Arg) => Out & { nonoptional: void }
+        ?   ((arg?: Arg) => Out)
+        :   (arg: Arg) => Out
 
 type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) extends (x: infer R) => any ? R : never;
 
-type CompatibleArgsFor<Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any, false>>> = {
-    [Index in Exclude<keyof Inputs, keyof []> as (Inputs[Index] extends (F<any, any, true> | F<any, any, false>) ? Index : never)]:
+type CompatibleArgsFor<Inputs extends Tuple<Context<any> | F<any, any, boolean>>> = {
+    [Index in Exclude<keyof Inputs, keyof []> as (Inputs[Index] extends (F<any, any, boolean>) ? Index : never)]:
         ArgFor<Inputs[Index]>
 }
 
@@ -26,20 +26,15 @@ type PredicateWrap<T> =
     [K in keyof T]: { predicate: T[K] }
 }
 
-type CompatibleArgFor0<Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any, false>>> =
+type CompatibleArgFor0<Inputs extends Tuple<Context<any> | F<any, any, boolean>>> =
     ({} extends CompatibleArgsFor<Inputs>
         ?   { predicate: unknown | undefined }    // There are no args to be compatible with
         :   ((UnionToIntersection<PredicateWrap<
         CompatibleArgsFor<Inputs>>[keyof CompatibleArgsFor<Inputs>]>)
-    //    | (AreAllOptional<Inputs> extends true ? undefined : never)
+    )
     )
 
-        // :   (AreAllOptional<Inputs> extends true
-        //         ?   UnionToIntersection<RemoveOptional<CompatibleArgsFor<Inputs>>[keyof CompatibleArgsFor<Inputs>]> | undefined
-        //         :   UnionToIntersection<RemoveOptional<CompatibleArgsFor<Inputs>>[keyof CompatibleArgsFor<Inputs>]>)
-    )
-
-type CompatibleArgFor<Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any, false>>> =
+type CompatibleArgFor<Inputs extends Tuple<Context<any> | F<any, any, boolean>>> =
     CompatibleArgFor0<Inputs> extends { predicate: infer T } ? T : never;
 
 type LJJLLJ = UnionToIntersection<[{ a: string } | undefined] | [{ b: string }]>[0]
@@ -53,7 +48,7 @@ const LJKJLLJ: LJJL = 3;
 
 type YYY3 = CompatibleArgFor<[ F<number, any, false>, F<number | string | undefined, any, true> ]>
 
-type OutputsOf<Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any, false>>> = {
+type OutputsOf<Inputs extends Tuple<Context<any> | F<any, any, boolean>>> = {
     [Index in keyof Inputs]:
         Inputs[Index] extends F<any, infer Out, boolean>
             ?   Out
@@ -61,8 +56,6 @@ type OutputsOf<Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, an
                     ?   Out
                     :   never
 }
-
-type AreAllOptional<Inputs> = Inputs extends Tuple<Context<any> | F<any, any, true>> ? true : false;
 
 function makeF<
     Inputs extends Tuple<Context<any> | F<any, any, true>>,
@@ -74,7 +67,7 @@ function makeF<
 ): F<Arg, Out, true>;
 
 function makeF<
-    Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any, false>>,
+    Inputs extends Tuple<Context<any> | F<any, any, boolean>>,
     Arg extends CompatibleArgFor<Inputs>,
     Out
 >(
@@ -86,7 +79,7 @@ function makeF<
     Inputs extends Tuple<Context<any> | F<any, any, boolean>>,
     Arg extends CompatibleArgFor<Inputs>,
     Out,
-    Optional extends boolean //Optional extends (((inputs: OutputsOf<Inputs>, arg: Arg) => Out) extends ((inputs: any, arg: undefined) => any) ? AreAllOptional<Inputs> : false)
+    Optional extends boolean
 >(
     inputSources: Inputs,
     converter: (inputs: OutputsOf<Inputs>, arg: Arg) => Out
@@ -105,10 +98,13 @@ type XXX = ((x?: number) => any) extends ((x: undefined) => any) ? true : false;
 
 const contextValue1 = createContext({ a: 5 });
 type TTT = CompatibleArgFor<[typeof contextValue1]>;
-const F1 = makeF([contextValue1], ([s], arg: { c: number }) => 3);
-const F2 = makeF([contextValue1], ([s], arg: { d: string }) => "Sadf");
-const FInput = makeF([F1, F2], ([v1, v2], arg: { c: number, d: string }) => ({ val: "ADf" }));
-const GInput = makeF([FInput, F1], ([v1, v2], arg: { c: number }) => "ASdf")
+const F1 = makeF([contextValue1], ([s], arg: { cArg: number }) => 3);
+const F2 = makeF([contextValue1], ([s], arg: { dArg: string }) => "Sadf");
+const FInput = makeF([F1, F2], ([v1, v2], arg: { cArg: number, dArg: string }) => ({ val: "ADf" }));
+const GInput = makeF([FInput, F1], ([v1, v2], arg: { cArg: number }) => "ASdf")
+F1();       // error: expects arg
+GInput();   // error: expects arg
+GInput({ cArg: 3, dArg: "ADF" })
 
 type AAAAAA = CompatibleArgsFor<[typeof F1, typeof F2]>
 type LKJLKJLKJ = ArgFor<typeof F1>
@@ -121,9 +117,9 @@ type ArgOf<TT extends F<any, any, boolean>> = (TT extends F<infer Arg, any, any>
 type FDKLFJKL = ArgOf<typeof F3>
 type LJLJ = CompatibleArgFor<[typeof contextValue1]>;
 
-GInput({ c: 3, d: "sdf" })
+GInput({ cArg: 3, dArg: "sdf" })
 F3();
-
+F4();
 
 type GetArgOf<Func> = Func extends (arg: infer Arg) => any ? Arg : never;
 
