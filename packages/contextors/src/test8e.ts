@@ -2,23 +2,31 @@ import { Context, useContext, isContext, createContext } from "contexto";
 
 type Tuple<T> = [] | [T, ...T[]];
 
-type F<Arg, Out, Optional> = true extends Optional ? (arg?: Arg) => Out : (arg: Arg) => Out;
+type F<Arg, Out, Optional> =
+    true extends Optional
+        ?   ((arg?: Arg) => Out) & { optional: void }
+        :   (arg: Arg) => Out & { nonoptional: void }
 
 type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) extends (x: infer R) => any ? R : never;
 
-type CompatibleArgsFor<Inputs extends Tuple<Context<any> | F<any, any, boolean>>> = {
-    [Index in Exclude<keyof Inputs, keyof []> as (Inputs[Index] extends F<any, any, boolean> ? Index : never)]:
+type CompatibleArgsFor<Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any, false>>> = {
+    [Index in Exclude<keyof Inputs, keyof []> as (Inputs[Index] extends (F<any, any, true> | F<any, any, false>) ? Index : never)]:
         ArgFor<Inputs[Index]>
 }
 
-type ArgFor<K> = K extends F<infer Arg, any, infer Optional> ? Arg | (true extends Optional ? undefined : never) : never;
+type ArgFor<K> =
+    K extends F<infer Arg, any, true>
+        ?   Arg | undefined
+        :   K extends F<infer Arg, any, false>
+            ?   Arg
+            :   never;
 
 type PredicateWrap<T> =
 {
     [K in keyof T]: { predicate: T[K] }
 }
 
-type CompatibleArgFor0<Inputs extends Tuple<Context<any> | F<any, any, boolean>>> =
+type CompatibleArgFor0<Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any, false>>> =
     ({} extends CompatibleArgsFor<Inputs>
         ?   { predicate: unknown | undefined }    // There are no args to be compatible with
         :   ((UnionToIntersection<PredicateWrap<
@@ -31,7 +39,7 @@ type CompatibleArgFor0<Inputs extends Tuple<Context<any> | F<any, any, boolean>>
         //         :   UnionToIntersection<RemoveOptional<CompatibleArgsFor<Inputs>>[keyof CompatibleArgsFor<Inputs>]>)
     )
 
-type CompatibleArgFor<Inputs extends Tuple<Context<any> | F<any, any, boolean>>> =
+type CompatibleArgFor<Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any, false>>> =
     CompatibleArgFor0<Inputs> extends { predicate: infer T } ? T : never;
 
 type LJJLLJ = UnionToIntersection<[{ a: string } | undefined] | [{ b: string }]>[0]
@@ -45,7 +53,7 @@ const LJKJLLJ: LJJL = 3;
 
 type YYY3 = CompatibleArgFor<[ F<number, any, false>, F<number | string | undefined, any, true> ]>
 
-type OutputsOf<Inputs extends Tuple<Context<any> | F<any, any, boolean>>> = {
+type OutputsOf<Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any, false>>> = {
     [Index in keyof Inputs]:
         Inputs[Index] extends F<any, infer Out, boolean>
             ?   Out
@@ -66,18 +74,19 @@ function makeF<
 ): F<Arg, Out, true>;
 
 function makeF<
-    Inputs extends Tuple<Context<any> | F<any, any, boolean>>,
+    Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any, false>>,
     Arg extends CompatibleArgFor<Inputs>,
     Out
 >(
     inputSources: Inputs,
     converter: (inputs: OutputsOf<Inputs>, arg: Arg) => Out
 ): F<Arg, Out, false>;
+
 function makeF<
     Inputs extends Tuple<Context<any> | F<any, any, boolean>>,
     Arg extends CompatibleArgFor<Inputs>,
     Out,
-    Optional extends (((inputs: OutputsOf<Inputs>, arg: Arg) => Out) extends ((inputs: any, arg: undefined) => any) ? AreAllOptional<Inputs> : false)
+    Optional extends boolean //Optional extends (((inputs: OutputsOf<Inputs>, arg: Arg) => Out) extends ((inputs: any, arg: undefined) => any) ? AreAllOptional<Inputs> : false)
 >(
     inputSources: Inputs,
     converter: (inputs: OutputsOf<Inputs>, arg: Arg) => Out
@@ -103,6 +112,7 @@ const GInput = makeF([FInput, F1], ([v1, v2], arg: { c: number }) => "ASdf")
 
 type AAAAAA = CompatibleArgsFor<[typeof F1, typeof F2]>
 type LKJLKJLKJ = ArgFor<typeof F1>
+type jjl = typeof F1 extends F<any, any, infer Optional> ? Optional : never;
 
 const F3 = makeF([contextValue1], ([s], arg?: { c: number }) => 3 + (arg?.c ?? 0));
 const F4 = makeF([F3], ([s], arg?: { c: number }) => null);
