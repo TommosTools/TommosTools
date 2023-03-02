@@ -2,21 +2,21 @@ import { Context, useContext, isContext, createContext } from "contexto";
 
 type Tuple<T> = [] | [T, ...T[]];
 
-type F<Arg, Out, Optional> =
+type F<Arg, Out, Optional=boolean> =
     true extends Optional
         ?   ((arg?: Arg) => Out)
         :   (arg: Arg) => Out
 
 type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) extends (x: infer R) => any ? R : never;
 
-type CompatibleArgsFor<Inputs extends Tuple<Context<any> | F<any, any, boolean>>> = {
-    [Index in Exclude<keyof Inputs, keyof []> as (Inputs[Index] extends (F<any, any, boolean>) ? Index : never)]:
+type CompatibleArgsFor<Inputs extends Tuple<Context<any> | F<any, any>>> = {
+    [Index in Exclude<keyof Inputs, keyof []> as (Inputs[Index] extends (F<any, any>) ? Index : never)]:
         ArgFor<Inputs[Index]>
 }
 
 type ArgFor<K> =
     K extends F<infer Arg, any, true>
-        ?   Arg | undefined
+        ?   Arg | undefined     // Partial<Arg> isn't quite correct ... need to preserve individual nullable options
         :   K extends F<infer Arg, any, false>
             ?   Arg
             :   never;
@@ -26,31 +26,37 @@ type PredicateWrap<T> =
     [K in keyof T]: { predicate: T[K] }
 }
 
-type CompatibleArgFor0<Inputs extends Tuple<Context<any> | F<any, any, boolean>>> =
+type CompatibleArgFor0<Inputs extends Tuple<Context<any> | F<any, any>>> =
     ({} extends CompatibleArgsFor<Inputs>
-        ?   { predicate: unknown | undefined }    // There are no args to be compatible with
+        ?   { predicate: unknown }    // There are no args to be compatible with
         :   ((UnionToIntersection<PredicateWrap<
         CompatibleArgsFor<Inputs>>[keyof CompatibleArgsFor<Inputs>]>)
     )
     )
 
-type CompatibleArgFor<Inputs extends Tuple<Context<any> | F<any, any, boolean>>> =
-    CompatibleArgFor0<Inputs> extends { predicate: infer T } ? T : never;
+type UndefinedToOptional<T> = { 
+    [K in keyof T as undefined extends T[K] ? K : never]?: T[K]
+} & {
+    [K in keyof T as undefined extends T[K] ? never : K]: T[K] 
+}
+
+type CompatibleArgFor<Inputs extends Tuple<Context<any> | F<any, any>>> =
+    UndefinedToOptional<CompatibleArgFor0<Inputs> extends { predicate: infer T } ? T : never>;
 
 type LJJLLJ = UnionToIntersection<[{ a: string } | undefined] | [{ b: string }]>[0]
 
-type YYY = CompatibleArgFor<[F<{a: number}, any, boolean>, Context<"">, F<{a: string}, any, boolean>]>
+type YYY = CompatibleArgFor<[F<{a: number}, any>, Context<"">, F<{a: string}, any>]>
 type YYY1 = CompatibleArgFor<[Context<"">]>
-type YYY2 = CompatibleArgsFor<[F<number | undefined, any, boolean>, F<string | number | undefined, any, boolean>]>
+type YYY2 = CompatibleArgsFor<[F<number | undefined, any>, F<string | number | undefined, any>]>
 type YYY4 = PredicateWrap<YYY2>[keyof YYY2];
 type LJJL = UnionToIntersection<YYY4>["predicate"]
 const LJKJLLJ: LJJL = 3;
 
 type YYY3 = CompatibleArgFor<[ F<number, any, false>, F<number | string | undefined, any, true> ]>
 
-type OutputsOf<Inputs extends Tuple<Context<any> | F<any, any, boolean>>> = {
+type OutputsOf<Inputs extends Tuple<Context<any> | F<any, any>>> = {
     [Index in keyof Inputs]:
-        Inputs[Index] extends F<any, infer Out, boolean>
+        Inputs[Index] extends F<any, infer Out>
             ?   Out
             :   Inputs[Index] extends Context<infer Out>
                     ?   Out
@@ -112,6 +118,8 @@ type jjl = typeof F1 extends F<any, any, infer Optional> ? Optional : never;
 
 const F3 = makeF([contextValue1], ([s], arg?: { c: number }) => 3 + (arg?.c ?? 0));
 const F4 = makeF([F3], ([s], arg?: { c: number }) => null);
+const F5 = makeF([F4], ([s], arg: { blern: string }) => String(s) + arg.blern);
+type F5arg = CompatibleArgFor<[typeof F5]>
 
 type ArgOf<TT extends F<any, any, boolean>> = (TT extends F<infer Arg, any, any> ? Arg : never) | (TT extends F<any, any, true> ? undefined : never);
 type FDKLFJKL = ArgOf<typeof F3>
