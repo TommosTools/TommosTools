@@ -4,8 +4,8 @@ type Tuple<T> = [] | [T, ...T[]];
 
 type F<Arg, Out, Optional=boolean> =
     true extends Optional
-        ?   ((arg?: Arg) => Out)
-        :   (arg: Arg) => Out
+        ?   ((arg?: Arg) => Out) // & { optional: void }
+        :   (arg: Arg) => Out // & { mandatory: void }
 
 type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) extends (x: infer R) => any ? R : never;
 
@@ -35,9 +35,9 @@ type CompatibleArgFor0<Inputs extends Tuple<Context<any> | F<any, any>>> =
     )
 
 type UndefinedToOptional<T> = { 
-    [K in keyof T as undefined extends T[K] ? never : K]: T[K] 
+    [K in keyof T as (undefined extends T[K] ? never : K)]: T[K] 
 } & {
-    [K in keyof T as undefined extends T[K] ? K : never]?: T[K]
+    [K in keyof T as (undefined extends T[K] ? K : never)]?: T[K]
 }
 
 type CompatibleArgFor<Inputs extends Tuple<Context<any> | F<any, any>>> =
@@ -79,7 +79,7 @@ function makeF<
 >(
     inputSources: Inputs,
     converter: (inputs: OutputsOf<Inputs>, arg: Arg) => Out
-): F<UndefinedToOptional<Arg & CompatibleArgFor<Inputs>>, Out, false>;
+): F<Arg & CompatibleArgFor<Inputs>, Out, false>;
 
 function makeF<
     Inputs extends Tuple<Context<any> | F<any, any, boolean>>,
@@ -128,6 +128,17 @@ GInput({ cArg: 3, dArg: "sdf" })
 F3();
 F4();
 F5({ blern: "3", c: 3, d: undefined })
+
+const G0 = createContext({ a: 22 });
+const G1 = makeF([G0], ([g0]) => g0.a);
+G1();
+const G2 = makeF([G0, G1], ([g0, g1]) => g0.a + g1);
+G2();
+const G3 = makeF([G0, G1], ([g0, g1], factor: number) => g0.a + g1 * factor);
+G3(5);
+const G4 = makeF([G2, G3], ([g2, g3]) => g2 + g3);
+G4();   // uh oh ... that should be an error
+
 
 type GetArgOf<Func> = Func extends (arg: infer Arg) => any ? Arg : never;
 
