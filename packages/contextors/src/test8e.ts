@@ -4,12 +4,12 @@ type Tuple<T> = [] | [T, ...T[]];
 
 type F<Arg, Out, Optional=boolean> =
     true extends Optional
-        ?   ((arg?: Arg) => Out) // & { optional: void }
-        :   (arg: Arg) => Out // & { mandatory: void }
+        ?   ((arg?: Arg) => Out) & { optional: void }
+        :   (arg: Arg) => Out & { mandatory: void }
 
 type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) extends (x: infer R) => any ? R : never;
 
-type CompatibleArgsFor<Inputs extends Tuple<Context<any> | F<any, any>>> = {
+type CompatibleArgsFor<Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any,false>>> = {
     [Index in Exclude<keyof Inputs, keyof []> as (Inputs[Index] extends (F<any, any>) ? Index : never)]:
         ArgFor<Inputs[Index]>
 }
@@ -26,7 +26,7 @@ type PredicateWrap<T> =
     [K in keyof T]: { predicate: T[K] }
 }
 
-type CompatibleArgFor0<Inputs extends Tuple<Context<any> | F<any, any>>> =
+type CompatibleArgFor0<Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any,false>>> =
     ({} extends CompatibleArgsFor<Inputs>
         ?   { predicate: unknown }    // There are no args to be compatible with
         :   ((UnionToIntersection<PredicateWrap<
@@ -40,7 +40,7 @@ type UndefinedToOptional<T> = {
     [K in keyof T as (undefined extends T[K] ? K : never)]?: T[K]
 }
 
-type CompatibleArgFor<Inputs extends Tuple<Context<any> | F<any, any>>> =
+type CompatibleArgFor<Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any,false>>> =
     CompatibleArgFor0<Inputs> extends { predicate: infer T } ? T : never;
 
 type LJJLLJ = UnionToIntersection<[{ a: string } | undefined] | [{ b: string }]>[0]
@@ -54,7 +54,7 @@ const LJKJLLJ: LJJL = 3;
 
 type YYY3 = CompatibleArgFor<[ F<number, any, false>, F<number | string | undefined, any, true> ]>
 
-type OutputsOf<Inputs extends Tuple<Context<any> | F<any, any>>> = {
+type OutputsOf<Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any, false>>> = {
     [Index in keyof Inputs]:
         Inputs[Index] extends F<any, infer Out>
             ?   Out
@@ -73,7 +73,7 @@ function makeF<
 ): F<UndefinedToOptional<Arg & CompatibleArgFor<Inputs>>, Out, true>;
 
 function makeF<
-    Inputs extends Tuple<Context<any> | F<any, any, boolean>>,
+    Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any, false>>,
     Arg,
     Out
 >(
