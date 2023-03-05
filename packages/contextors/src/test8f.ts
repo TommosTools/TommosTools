@@ -4,13 +4,13 @@ type Tuple<T> = [] | [T, ...T[]];
 
 type F<Arg, Out, Optional=boolean> =
     true extends Optional
-        ?   ((arg: Arg | undefined) => Out)
+        ?   () => Out | ((arg: Arg | undefined) => Out)
         :   (arg: Arg) => Out
 
 type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) extends (x: infer R) => any ? R : never;
 
 type CompatibleArgsFor<Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any,false>>> = {
-    [Index in Exclude<keyof Inputs, keyof []> as (Inputs[Index] extends (F<any, any>) ? Index : never)]:
+    [Index in Exclude<keyof Inputs, keyof []> as (Inputs[Index] extends (F<any, any, true> | F<any, any, false>) ? Index : never)]:
         ArgFor<Inputs[Index]>
 }
 
@@ -63,6 +63,16 @@ type OutputsOf<Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, an
                     :   never
 }
 
+
+
+function makeF<
+    Inputs extends Tuple<Context<any> | F<any, any, true>>,
+    Out
+>(
+    inputSources: Inputs,
+    converter: (inputs: OutputsOf<Inputs>, arg?: never) => Out
+): F<CompatibleArgFor<Inputs>, Out, true> //& { omitted: void };
+
 function makeF<
     Inputs extends Tuple<Context<any> | F<any, any, true>>,
     Arg,
@@ -70,15 +80,7 @@ function makeF<
 >(
     inputSources: Inputs,
     converter: (inputs: OutputsOf<Inputs>, arg: Arg | undefined) => Out
-): F<Arg & CompatibleArgFor<Inputs>, Out, true> & { optional: void };
-
-function makeF<
-    Inputs extends Tuple<Context<any> | F<any, any, true>>,
-    Out
->(
-    inputSources: Inputs,
-    converter: (inputs: OutputsOf<Inputs>) => Out
-): F<CompatibleArgFor<Inputs>, Out, true> & { omitted: void };
+): F<Arg & CompatibleArgFor<Inputs>, Out, true> //& { optional: void };
 
 function makeF<
     Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any, false>>,
@@ -87,7 +89,7 @@ function makeF<
 >(
     inputSources: Inputs,
     converter: (inputs: OutputsOf<Inputs>, arg: Arg) => Out
-): F<Arg & CompatibleArgFor<Inputs>, Out, false> & { mandatory: void };
+): F<Arg & CompatibleArgFor<Inputs>, Out, false> //& { mandatory: void };
 
 function makeF<
     Inputs extends Tuple<Context<any> | F<any, any, boolean>>,
@@ -131,24 +133,27 @@ const F5 = makeF([F4], ([s], arg: { blern: string }) => String(s) + arg.blern);
 type F5arg = CompatibleArgFor<[typeof F5]>
 
 type ArgOf<TT extends F<any, any, boolean>> = (TT extends F<infer Arg, any, false> ? Arg : never) | (TT extends F<any, any, true> ? undefined : never);
-type FDKLFJKL = ArgOf<typeof F3>
 type LJLJ = CompatibleArgFor<[typeof contextValue1]>;
 
 GInput({ cArg: 3, dArg: "sdf" })
-F3();
+F3(); // should be an error: expects { c, d? }
+F3({ c: 3 })
+F3({ c: 3, d: "Asdf" })
 F4({ c: 9 });
 F5({ blern: "3", c: 3, d: undefined })
 
 const G0 = createContext({ a: 22 });
 const G1 = makeF([G0], ([g0]) => g0.a);
-G1();  // FIXME getting closer though damn
+G1();
 const G2 = makeF([G0, G1], ([g0, g1]) => g0.a + g1);
 G2();
 const G3 = makeF([G0, G1], ([g0, g1], factor: number) => g0.a + g1 * factor);
 G3(5);
 const G4 = makeF([G2, G3], ([g2, g3]) => g2 + g3);
-G4();   // uh oh ... that should be an error
-
+G4(); // should be an error -- wants a number
+G4(3);
+const G5 = makeF([G2, G3], ([g2, g3], negate: boolean) => negate ? -(g2 + g3) : (g2 + g3));
+G5(true); // error
 
 type GetArgOf<Func> = Func extends (arg: infer Arg) => any ? Arg : never;
 
