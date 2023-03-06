@@ -64,15 +64,6 @@ type OutputsOf<Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, an
 }
 
 
-
-function makeF<
-    Inputs extends Tuple<Context<any> | F<any, any, true>>,
-    Out
->(
-    inputSources: Inputs,
-    converter: (inputs: OutputsOf<Inputs>, arg?: never) => Out
-): F<CompatibleArgFor<Inputs>, Out, true> //& { omitted: void };
-
 function makeF<
     Inputs extends Tuple<Context<any> | F<any, any, true>>,
     Arg,
