@@ -13,66 +13,57 @@ import {
 	useRef,
 } from "react";
 
-type ContextorInput<T, Arg> = (
-	| Context<T>
-	| Contextor<T, Arg, false>
+type ContextorInput<Out, Arg> = (
+	| Context<Out>
+	| AnyContextor<Out, Arg>
+);
+
+type ArglessContextorInput<Out> = (
+	| Context<Out>
+	| Contextor<Out, unknown, true, false>
+)
+
+type AnyContextor<Out, Arg> = (
+	| Contextor<Out, Arg, false, false>
+	| Contextor<Out, Arg, true, false>
 );
 
 type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) extends (x: infer R) => any ? R : never;
 
 type Tuple<T> = [] | [T, ...T[]];
 
-type TypesFor<Inputs extends Tuple<ContextorInput<any, Arg>>, Arg> = Inputs extends infer InputsT ? {
+type OutputsFor<Inputs extends Tuple<ContextorInput<unknown, any>>> = Inputs extends infer InputsT ? {
 	[Index in keyof InputsT]: (
-		InputsT[Index] extends ContextorInput<infer T, Arg> ? T : InputsT[Index]
+		InputsT[Index] extends ContextorInput<infer T, any> ? T : InputsT[Index]
 	)
 } : never;
 
-type ArgsFor<Inputs extends Tuple<ContextorInput<any, any>>> = Inputs extends infer InputsT ? {
-	[Index in keyof InputsT]: (
-		InputsT[Index] extends ContextorInput<any, infer Arg> ? Arg : InputsT[Index]
-	)
-} : never;
 
-type ArgFor<Inputs extends Tuple<ContextorInput<any, any>>> =
-	UnionToIntersection<ArgsFor<Inputs>[number]>;
-
-/*
-type ArgFor<Inputs extends Tuple<ContextorInput<unknown, any>>> =
-	Inputs extends [ContextorInput<any, infer Arg>]
-		?	(Arg extends undefined ? {} : Arg)
-		:	Inputs extends [ContextorInput<any, infer Arg>, ...infer InputsT]
-				?	(InputsT extends Tuple<ContextorInput<unknown, unknown>> ? ArgFor<InputsT> : never)
-					& (Arg extends undefined ? {} : Arg)
-				:	never;
-*/
-
-type Contextor<T, Arg, Bound extends boolean, Inputs extends Tuple<ContextorInput<any, Arg>> = any> = (
+type Contextor<T, Arg, ArgIsOptional extends boolean, Bound extends boolean, Inputs extends Tuple<ContextorInput<unknown, Arg>> = any> = (
 	Bound extends true
-		?	[RawContextor<T, Arg, Inputs>, Arg]
-		// ?	Arg extends undefined
-		// 		?	[RawContextor<T, Arg, Inputs>, Arg] | RawContextor<T, Arg, Inputs>
-		// 		:	[RawContextor<T, Arg, Inputs>, Arg]
+		?	Arg extends undefined
+				?	[RawContextor<T, Arg, ArgIsOptional, Inputs>, Arg] | RawContextor<T, Arg, ArgIsOptional, Inputs>
+				:	[RawContextor<T, Arg, Inputs>, Arg]
 		:	RawContextor<T, Arg, Inputs>
 )
 
 type OptionalIfUndefined<Arg> = Arg extends undefined ? [arg?: Arg] : [arg: Arg];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-class RawContextor<T, Arg, Inputs extends Tuple<ContextorInput<any, Arg>> = any>
+class RawContextor<Out, Arg, ArgIsOptional, Inputs extends Tuple<ContextorInput<any, Arg>> = any>
 {
-	readonly contexts: Set<Context<unknown>>;
+	readonly contexts:	Set<Context<unknown>>;
+	readonly inputs:	Inputs;
+	readonly combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out;
 
 	constructor(
-		readonly inputs:	Inputs,
-		readonly combiner:
-			(inputs: TypesFor<Inputs, Arg>, arg: Arg) => T
-			// Arg extends undefined
-			// 	?	(inputs: TypesFor<Inputs>, arg?: Arg) => T
-			// 	:	(inputs: TypesFor<Inputs>, arg: Arg) => T
+		inputs:		Inputs,
+		combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
 	)
 	{
-		this.contexts = new Set();
+		this.contexts	= new Set();
+		this.inputs		= inputs;
+		this.combiner	= combiner;
 
 		for (const input of inputs)
 		{
@@ -83,16 +74,16 @@ class RawContextor<T, Arg, Inputs extends Tuple<ContextorInput<any, Arg>> = any>
 		}
 	}
 
-	withArg(arg: Arg): Contextor<T, Arg, true, Inputs>;
-	withArg(...args: OptionalIfUndefined<Arg>): Contextor<T, Arg, true, Inputs>;
-	withArg(arg?: Arg): Contextor<T, Arg, true, Inputs>
+	withArg(arg: Arg): Contextor<Out, Arg, true, Inputs>;
+	withArg(...args: OptionalIfUndefined<Arg>): Contextor<Out, Arg, true, Inputs>;
+	withArg(arg?: Arg): Contextor<Out, Arg, true, Inputs>
 	{
-		return [this, arg] as unknown as Contextor<T, Arg, true, Inputs>;
+		return [this, arg] as unknown as Contextor<Out, Arg, true, Inputs>;
 	}
 
-	// subscribe(subscriber: Subscriber, onChange: Listener<T>, arg: Arg): [T, Unsubscriber];
-	// subscribe(subscriber: Subscriber, onChange: Listener<T>, ...args: OptionalIfUndefined<Arg>): [T, Unsubscriber];
-	subscribe(subscriber: Subscriber, onChange: Listener<T>, arg: Arg): [T, Unsubscriber]
+	subscribe(subscriber: Subscriber, onChange: Listener<Out>, arg: Arg): [Out, Unsubscriber];
+	subscribe(subscriber: Subscriber, onChange: Listener<Out>, ...args: OptionalIfUndefined<Arg>): [Out, Unsubscriber];
+	subscribe(subscriber: Subscriber, onChange: Listener<Out>, arg?: Arg): [Out, Unsubscriber]
 	{
 		const { inputs } = this;
 
@@ -101,7 +92,7 @@ class RawContextor<T, Arg, Inputs extends Tuple<ContextorInput<any, Arg>> = any>
 
 		const inputValues = (
 			inputs.map(
-				<V>(input: ContextorInput<V, Arg>, i: number) =>
+				<V,>(input: ContextorInput<V, Arg>, i: number) =>
 				{
 					const updateValue = (
 						(newValue: V) =>
@@ -121,7 +112,7 @@ class RawContextor<T, Arg, Inputs extends Tuple<ContextorInput<any, Arg>> = any>
 
 					return initialValue;
 				}
-			) as unknown as TypesFor<Inputs, Arg>
+			) as unknown as OutputsFor<Inputs>
 		);
 
 		const initialValue = this.cachedCombiner(inputValues, arg!);
@@ -129,12 +120,12 @@ class RawContextor<T, Arg, Inputs extends Tuple<ContextorInput<any, Arg>> = any>
 		return [initialValue, unsubscribeAll];
 	}
 
-	private cache: NestedCache<T> = new WeakMap();
+	private cache: NestedCache<Out> = new WeakMap();
 
 	// Arbitrary object scoped to the Contextor that can be used to index a WeakMap
 	private TerminalCacheKey = {};
 
-	private cachedCombiner(inputValues: TypesFor<Inputs, Arg>, arg: Arg): T
+	private cachedCombiner(inputValues: OutputsFor<Inputs>, arg: Arg): Out
 	{
 		//
 		// Caching of combined values using nested WeakMaps.
@@ -169,7 +160,7 @@ class RawContextor<T, Arg, Inputs extends Tuple<ContextorInput<any, Arg>> = any>
 		{
 			if (isObject(input))
 			{
-				let nextCacheRef = cacheRef.get(input) as NestedCache<T>;
+				let nextCacheRef = cacheRef.get(input) as NestedCache<Out>;
 				if (nextCacheRef)
 					cacheRef = nextCacheRef;
 				else
@@ -219,23 +210,67 @@ const shallowEqual = (array1: unknown[], array2: unknown[]) => (
 	|| ((array1.length === array2.length) && array1.every((keyComponent, i) => keyComponent === array2[i]))
 );
 
-const Context1 = createContext({ a: 5 });
-const Context2 = createContext({ b: 33 });
-const CX1 = createContextor([Context1], (s, arg: { c: number }) => arg);
-const CX2 = createContextor([Context2], (s, arg: { d: string }) => arg);
-type KJKJL = ArgsFor<[typeof CX1]>;
-type JKJKL = ArgFor<[typeof CX1]>;
-const adsfadsf = createContextor([Context1, Context2], ([v1,v2], arg: { a: number }) => null)
-const ctxinput = createContextor([CX1], ([v1], arg: { c: number }) => null)
-const kkj = createContextor([CX1, CX2], ([v1,v2], arg: { c: number }) => null)
+const Context1 = createContext("ASDFAS");
+const Context2 = createContext(33);
+const CX1 = createContextor<number,number,[Context<string>]>([Context1], (s: [string], arg: number) => arg);
+type JKJKL = ArgFor<[typeof Context1,]>;
+const adsfadsf = createContextor([Context1, Context2], ([v1,v2]: [string,number], arg: { a: number }) => null)
 
-export function createContextor<T, Arg, Inputs extends Tuple<ContextorInput<any, Arg>>>(
-	inputs: Inputs,
-	combiner: (inputs: TypesFor<Inputs, Arg>, arg: Arg) => T
-		/* Arg extends undefined
-			?	(inputs: TypesFor<Inputs>, arg?: Arg) => T
-			:	(inputs: TypesFor<Inputs>, arg: Arg) => T */
-): Contextor<T, Arg, false, Inputs>
+type ArgFor<K> =
+	K extends Contextor<any, infer Arg, true>
+		?   Arg | undefined     // Partial<Arg> isn't quite correct ... need to preserve individual nullable options
+		:   K extends Contextor<any, infer Arg, false>
+			?   Arg
+			:   never;
+
+type CompatibleArgsFor<Inputs extends Tuple<ContextorInput<any, any>>> = {
+	[Index in Exclude<keyof Inputs, keyof []>
+		as (Inputs[Index] extends AnyContextor<any, any> ? Index : never)]:
+			ArgFor<Inputs[Index]>
+}
+
+type ArgWrap<T> = {
+	[K in keyof T]: { arg: T[K] }
+}
+
+type CompatibleArgFor<Inputs extends Tuple<ContextorInput<any, any>>> =
+	({} extends CompatibleArgsFor<Inputs>
+		?   { arg: unknown }    // There are no args to be compatible with
+		:   UnionToIntersection<
+				ArgWrap<CompatibleArgsFor<Inputs>>[keyof CompatibleArgsFor<Inputs>]
+			>
+	) extends { arg: infer Arg } ? Arg : never;
+
+
+
+
+
+
+
+export function createContextor<Out, Inputs extends Tuple<ArglessContextorInput<unknown>>>(
+	inputs:		Inputs,
+	combiner:	(inputs: OutputsFor<Inputs>, arg?: never) => Out
+): Contextor<Out, unknown, true, false>;
+
+export function createContextor<Out, Inputs extends Tuple<ContextorInput<unknown, unknown>>>(
+	inputs:		Inputs,
+	combiner:	(inputs: OutputsFor<Inputs>, arg?: never) => Out
+): Contextor<Out, CompatibleArgFor<Inputs>, true, false>;
+
+export function createContextor<Out, Arg extends undefined, Inputs extends Tuple<ContextorInput<unknown, unknown>>>(
+	inputs:		Inputs,
+	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
+): Contextor<Out, Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, true, false>;
+
+export function createContextor<Out, Arg, Inputs extends Tuple<ContextorInput<unknown, unknown>>>(
+	inputs:		Inputs,
+	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
+): Contextor<Out, Arg & CompatibleArgFor<Inputs>, false, false>;
+
+export function createContextor<Out, Arg, Inputs extends Tuple<ContextorInput<any, Arg>>>(
+	inputs:		Inputs,
+	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
+)//: Contextor<T, ArgFor<Inputs> & Arg, false, Inputs>
 {
 	return new RawContextor(inputs, combiner);
 }
