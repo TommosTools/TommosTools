@@ -1,4 +1,5 @@
 import {
+	isContext,
 	Listener,
 	Subscriber,
 	Unsubscriber,
@@ -14,20 +15,36 @@ import {
 
 type Contextor<Arg, Out, ArgIsOptional extends boolean = boolean> =
 	(true extends ArgIsOptional
-		?	((arg?: Arg | undefined) => RawContextor<any, Arg, Out>) & { __optional: void }
+		?	((arg?: Arg | undefined) => BoundContextor<Arg, Out>) & { __optional: void }
 		:	never)
 	|
 	(false extends ArgIsOptional
-		?	((arg: Arg) => RawContextor<any, Arg, Out>) & { __required: void }
+		?	((arg: Arg) => BoundContextor<Arg, Out>) & { __required: void }
 		:	never)
 
 type BoundContextor<Arg, Out> =	[RawContextor<any, Arg, Out>, Arg]
+
+function isBoundContextor<Arg, Out>(contextor: Contextor<Arg, Out> | BoundContextor<Arg, Out>)
+	: contextor is BoundContextor<Arg, Out>
+{
+	return contextor instanceof Array;
+}
+
+type ArglessContextorInput<Out> = (
+	| Context<Out>
+	| Contextor<any, Out, true>
+)
 
 type ContextorInput<Arg, Out> = (
 	| Context<Out>
 	| Contextor<Arg, Out, false>
 	| Contextor<Arg, Out, true>
 );
+
+type UseContextorInput<Arg, Out> = (
+	| Contextor<Arg, Out, true>
+	| BoundContextor<Arg, Out>
+)
 
 type Tuple<T> = [] | [T, ...T[]];
 
@@ -61,10 +78,14 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 
 		for (const input of inputs)
 		{
-			if (isContextor(input))
-				input.contexts.forEach((context) => this.contexts.add(context));
-			else	// input is a Context
+			if (isContext(input))
 				this.contexts.add(input);
+			else if (isContextor(input))
+			{
+				if (isBoundContextor(input))
+					input[0].contexts.forEach((context) => this.contexts.add(context));
+				else
+					input.contexts.forEach((context) => this.contexts.add(context));
 		}
 	}
 
@@ -117,7 +138,7 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 	// Arbitrary object scoped to the Contextor that can be used to index a WeakMap
 	private TerminalCacheKey = {};
 
-	private cachedCombiner(inputValues: OutputsFor<Inputs>): Out
+	private cachedCombiner(inputValues: OutputsFor<Inputs>, arg: Arg): Out
 	{
 		//
 		// Caching of combined values using nested WeakMaps.
@@ -152,7 +173,7 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 		{
 			if (isObject(input))
 			{
-				let nextCacheRef = cacheRef.get(input) as NestedCache<T>;
+				let nextCacheRef = cacheRef.get(input) as NestedCache<Out>;
 				if (nextCacheRef)
 					cacheRef = nextCacheRef;
 				else
@@ -172,7 +193,7 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 			return terminalCache.value;
 		}
 		// Recompute value, and store in cache
-		const value = this.combiner(inputValues);
+		const value = this.combiner(inputValues, arg);
 		cacheRef.set(this.TerminalCacheKey, { keys: [...inputValues], value });
 		return value;
 	}
@@ -229,7 +250,7 @@ export function createContextor<Inputs extends Tuple<ContextorInput<any, Arg>>, 
 {
 	const contextor = new RawContextor(inputs, combiner);
 
-	return (arg: Arg) => contextor.withArg(arg);
+	return ((arg: Arg) => contextor.withArg(arg));
 }
 
 function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>): State<T, Arg>
@@ -250,7 +271,7 @@ function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>):
 	}
 }
 
-export function useContextor<Arg, Out>(contextor: Contextor<any, Arg, Out, true>): Out
+export function useContextor<Arg, Out>(contextor: UseContextorInput<Arg, Out>): Out
 {
 	const subscriber = useSubscriber();
 
@@ -261,12 +282,12 @@ export function useContextor<Arg, Out>(contextor: Contextor<any, Arg, Out, true>
 	// is ever used (in the reducer initialisation).
 	//
 	const subscribe = (
-		(newContextor: Contextor<any, Arg, Out, true>): State<Arg, Out> =>
+		(newContextor: UseContextorInput<Arg, Out>): State<Arg, Out> =>
 		{
 			const [rawContextor, arg] = (
-				(newContextor instanceof RawContextor)
-					?	[newContextor, undefined]	// Arg extends undefined -- allow raw contextor
-					:	newContextor
+				isBoundContextor(newContextor)
+					?	newContextor
+					:	newContextor(undefined)	// Arg extends undefined -- allow unbound contextor
 			);
 			const [initialValue, unsubscribe] = (
 				rawContextor.subscribe(
@@ -301,11 +322,11 @@ export function useContextor<Arg, Out>(contextor: Contextor<any, Arg, Out, true>
 type State<Arg, Out> = {
 	value:			Out;
 	unsubscribe?:	Unsubscriber;
-	subscribe:		(contextor: Contextor<any, Arg, Out, true>) => State<Arg, Out>
+	subscribe:		(contextor: UseContextorInput<Arg, Out>) => State<Arg, Out>
 };
 type Action<Arg, Out> = (
 	| { type: "setValue", value: Out }
-	| { type: "setContextor", contextor: Contextor<any, Arg, Out, true> }
+	| { type: "setContextor", contextor: UseContextorInput<Arg, Out> }
 	| { type: "unsetContextor" }
 );
 
