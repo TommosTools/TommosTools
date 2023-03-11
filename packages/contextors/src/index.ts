@@ -15,11 +15,11 @@ import {
 
 type Contextor<Arg, Out, ArgIsOptional extends boolean = boolean> =
 	(true extends ArgIsOptional
-		?	((arg?: Arg | undefined) => BoundContextor<Arg, Out>) & { __optional: void }
+		?	((arg?: Arg | undefined) => BoundContextor<Arg, Out>) & { raw: RawContextor<any, Arg, Out>, __optional: void }
 		:	never)
 	|
 	(false extends ArgIsOptional
-		?	((arg: Arg) => BoundContextor<Arg, Out>) & { __required: void }
+		?	((arg: Arg) => BoundContextor<Arg, Out>) & { raw: RawContextor<any, Arg, Out>, __required: void }
 		:	never)
 
 type BoundContextor<Arg, Out> =	[RawContextor<any, Arg, Out>, Arg]
@@ -80,12 +80,13 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 		{
 			if (isContext(input))
 				this.contexts.add(input);
-			else if (isContextor(input))
+			else //if (isContextor(input))
 			{
 				if (isBoundContextor(input))
 					input[0].contexts.forEach((context) => this.contexts.add(context));
 				else
-					input.contexts.forEach((context) => this.contexts.add(context));
+					input.raw.contexts.forEach((context) => this.contexts.add(context));
+			}
 		}
 	}
 
@@ -111,14 +112,16 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 						(newValue: Out) =>
 						{
 							inputValues[i] = newValue;
-							onChange(this.cachedCombiner(inputValues));
+							onChange(this.cachedCombiner(inputValues, arg!));
 						}
 					);
 
 					const [initialValue, unsubscribe] = (
-						isContextor(input)
-							?	input.subscribe(subscriber, updateValue, arg!)
-							:	subscriber(input, updateValue)
+						isContext(input)
+							?	subscriber(input, updateValue)
+							:	isBoundContextor(input)
+									?	input[0].subscribe(subscriber, updateValue, arg!)
+									:	input.raw.subscribe(subscriber, updateValue, arg!)
 					);
 
 					unsubscribers.push(unsubscribe);
@@ -128,7 +131,7 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 			) as unknown as OutputsFor<Inputs>
 		);
 
-		const initialValue = this.cachedCombiner(inputValues);
+		const initialValue = this.cachedCombiner(inputValues, arg!);
 
 		return [initialValue, unsubscribeAll];
 	}
@@ -243,14 +246,17 @@ export function createContextor<Inputs extends Tuple<ContextorInput<unknown, unk
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
 ): Contextor<Arg & CompatibleArgFor<Inputs>, Out, false>;
 
-export function createContextor<Inputs extends Tuple<ContextorInput<any, Arg>>, Arg, Out>(
+export function createContextor<Inputs extends Tuple<ContextorInput<Arg, any>>, Arg, Out>(
 	inputs:		Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
 )
 {
-	const contextor = new RawContextor(inputs, combiner);
+	const raw = new RawContextor(inputs, combiner);
 
-	return ((arg: Arg) => contextor.withArg(arg));
+	const contextor = (arg: Arg) => raw.withArg(arg);
+	contextor.raw = raw;
+
+	return contextor;
 }
 
 function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>): State<T, Arg>
