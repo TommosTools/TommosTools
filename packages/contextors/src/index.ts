@@ -1,4 +1,5 @@
 import {
+	createContext,
 	isContext,
 	Listener,
 	Subscriber,
@@ -13,7 +14,8 @@ import {
 	useRef,
 } from "react";
 
-type Contextor<Arg, Out, ArgIsOptional extends boolean = boolean> =
+/*
+type Contextor<Arg, Out, ArgIsOptional extends boolean> =
 	(true extends ArgIsOptional
 		?	((arg?: Arg | undefined) => BoundContextor<Arg, Out>) & { raw: RawContextor<any, Arg, Out>, __optional: void }
 		:	never)
@@ -21,10 +23,16 @@ type Contextor<Arg, Out, ArgIsOptional extends boolean = boolean> =
 	(false extends ArgIsOptional
 		?	((arg: Arg) => BoundContextor<Arg, Out>) & { raw: RawContextor<any, Arg, Out>, __required: void }
 		:	never)
+*/
+
+type Contextor<Arg, Out, ArgIsOptional extends boolean> =
+	true extends ArgIsOptional
+		?	((arg?: Arg | undefined) => BoundContextor<Arg, Out>) & { raw: RawContextor<any, Arg, Out>, __optional: void }
+		:	((arg: Arg) => BoundContextor<Arg, Out>) & { raw: RawContextor<any, Arg, Out>, __required: void }
 
 type BoundContextor<Arg, Out> =	[RawContextor<any, Arg, Out>, Arg]
 
-function isBoundContextor<Arg, Out>(contextor: Contextor<Arg, Out> | BoundContextor<Arg, Out>)
+function isBoundContextor<Arg, Out>(contextor: Contextor<Arg, Out, true> | Contextor<Arg, Out, false> | BoundContextor<Arg, Out>)
 	: contextor is BoundContextor<Arg, Out>
 {
 	return contextor instanceof Array;
@@ -203,7 +211,7 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 }
 
 export function isContextor<Arg, Out>(value: unknown)
-	: value is Contextor<Arg, Out> | BoundContextor<Arg, Out>
+	: value is Contextor<Arg, Out, true> | Contextor<Arg, Out, false> | BoundContextor<Arg, Out>
 {
 	return (value instanceof RawContextor) || (value instanceof Array && value[0] instanceof RawContextor);
 }
@@ -229,22 +237,17 @@ const shallowEqual = (array1: unknown[], array2: unknown[]) => (
 export function createContextor<Inputs extends Tuple<ArglessContextorInput<unknown>>, Out>(
 	inputs:		Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg?: never) => Out
-): Contextor<unknown, Out, false>;
+): Contextor<unknown, Out, true> & { omitted: void };
 
-export function createContextor<Inputs extends Tuple<ContextorInput<unknown, unknown>>, Out>(
-	inputs:		Inputs,
-	combiner:	(inputs: OutputsFor<Inputs>, arg?: never) => Out
-): Contextor<CompatibleArgFor<Inputs>, Out, false>;
-
-export function createContextor<Inputs extends Tuple<ContextorInput<unknown, unknown>>, Arg extends undefined, Out>(
+export function createContextor<Inputs extends Tuple<ArglessContextorInput<unknown>>, Arg extends undefined, Out>(
 	inputs:		Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
-): Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, false>;
+): Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, true> & { optional: void };
 
-export function createContextor<Inputs extends Tuple<ContextorInput<unknown, unknown>>, Arg, Out>(
+export function createContextor<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg, Out>(
 	inputs:		Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
-): Contextor<Arg & CompatibleArgFor<Inputs>, Out, false>;
+): Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, false> & { mandatory: void };
 
 export function createContextor<Inputs extends Tuple<ContextorInput<Arg, any>>, Arg, Out>(
 	inputs:		Inputs,
@@ -352,7 +355,7 @@ function useEffectOnUpdate(effect: () => (() => void), deps: unknown[])
 }
 
 type CompatibleArgsFor<Inputs extends Tuple<ContextorInput<any, any>>> = {
-	[Index in Exclude<keyof Inputs, keyof []> as (Inputs[Index] extends Contextor<any, any> ? Index : never)]:
+	[Index in Exclude<keyof Inputs, keyof []> as (Inputs[Index] extends (Contextor<any, any, true> | Contextor<any, any, false>) ? Index : never)]:
 		ArgFor<Inputs[Index]>
 }
 
@@ -376,3 +379,9 @@ type CompatibleArgFor<Inputs extends Tuple<ContextorInput<any, any>>> =
 				WrapArg<CompatibleArgsFor<Inputs>>[keyof CompatibleArgsFor<Inputs>]
 			>
 	) extends { arg: infer Arg } ? Arg : never;
+
+const contextValue1 = createContext({ a: 5 });
+const F1 = createContextor([contextValue1], ([s], arg: { cArg: number }) => 3);
+const F2 = createContextor([contextValue1], ([s], arg: { dArg: string } | undefined) => "Sadf");
+
+const FInput = createContextor([F1, F2], ([v1, v2], arg: { cArg: number, dArg: string }) => ({ val: "ADf" }));
