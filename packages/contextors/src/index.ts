@@ -218,20 +218,20 @@ const shallowEqual = (array1: unknown[], array2: unknown[]) => (
 	|| ((array1.length === array2.length) && array1.every((keyComponent, i) => keyComponent === array2[i]))
 );
 
+export function createContextor<Inputs extends Tuple<ArglessContextorInput<unknown>>, Arg, Out>(
+	inputs:		Inputs,
+	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg | undefined) => Out
+): Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, true> & { optional: void };
+
 export function createContextor<Inputs extends Tuple<ArglessContextorInput<unknown>>, Out>(
 	inputs:		Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg?: never) => Out
-): Contextor<unknown, Out, true>;
-
-export function createContextor<Inputs extends Tuple<ArglessContextorInput<unknown>>, Arg extends undefined, Out>(
-	inputs:		Inputs,
-	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
-): Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, true>;
+): Contextor<Exclude<CompatibleArgFor<Inputs>, undefined>, Out, true> & { omitted: void };
 
 export function createContextor<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg, Out>(
 	inputs:		Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
-): Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, false>;
+): Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, false> & { mandatory: void };
 
 export function createContextor<Inputs extends Tuple<ContextorInput<Arg, any>>, Arg, Out>(
 	inputs:		Inputs,
@@ -387,6 +387,10 @@ const G7 = createContextor([G2, G1], ([g2, g1], negate: number) => g2 + g1);
 F1();		// error: expects arg
 
 F2();
+
+F2({});		// error: must supply dArg
+
+F2({ dArg: "Asdf" });
 FInput({ cArg: 3, dArg: "asdf" });
 
 GInput();	// error: expects arg
@@ -419,4 +423,4 @@ useContextor(F1);				// error: F1 requires { cArg }
 
 useContextor(F1({ cArg: 3 }));
 useContextor(F2);
-useContextor(F2({ }))	// hmmm: should prompt with dArg
+useContextor(F2({ dArg: "asdf" }));
