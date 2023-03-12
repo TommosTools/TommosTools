@@ -14,8 +14,7 @@ import {
 	useRef,
 } from "react";
 
-/*
-type Contextor<Arg, Out, ArgIsOptional extends boolean> =
+type Contextor<Arg, Out, ArgIsOptional extends boolean = boolean> =
 	(true extends ArgIsOptional
 		?	((arg?: Arg | undefined) => BoundContextor<Arg, Out>) & { raw: RawContextor<any, Arg, Out>, __optional: void }
 		:	never)
@@ -23,16 +22,10 @@ type Contextor<Arg, Out, ArgIsOptional extends boolean> =
 	(false extends ArgIsOptional
 		?	((arg: Arg) => BoundContextor<Arg, Out>) & { raw: RawContextor<any, Arg, Out>, __required: void }
 		:	never)
-*/
-
-type Contextor<Arg, Out, ArgIsOptional extends boolean> =
-	true extends ArgIsOptional
-		?	((arg?: Arg | undefined) => BoundContextor<Arg, Out>) & { raw: RawContextor<any, Arg, Out>, __optional: void }
-		:	((arg: Arg) => BoundContextor<Arg, Out>) & { raw: RawContextor<any, Arg, Out>, __required: void }
 
 type BoundContextor<Arg, Out> =	[RawContextor<any, Arg, Out>, Arg]
 
-function isBoundContextor<Arg, Out>(contextor: Contextor<Arg, Out, true> | Contextor<Arg, Out, false> | BoundContextor<Arg, Out>)
+function isBoundContextor<Arg, Out>(contextor: Contextor<Arg, Out> | BoundContextor<Arg, Out>)
 	: contextor is BoundContextor<Arg, Out>
 {
 	return contextor instanceof Array;
@@ -45,8 +38,7 @@ type ArglessContextorInput<Out> = (
 
 type ContextorInput<Arg, Out> = (
 	| Context<Out>
-	| Contextor<Arg, Out, false>
-	| Contextor<Arg, Out, true>
+	| Contextor<Arg, Out>
 );
 
 type UseContextorInput<Arg, Out> = (
@@ -61,14 +53,6 @@ type OutputsFor<Inputs extends Tuple<ContextorInput<any, unknown>>> = Inputs ext
 		InputsT[Index] extends ContextorInput<any, infer Out> ? Out : InputsT[Index]
 	)
 } : never;
-
-type ContextorX<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out, Bound extends boolean> = (
-	Bound extends true
-		?	Arg extends undefined
-				?	[RawContextor<Inputs, Arg, Out>, Arg] | RawContextor<Inputs, Arg, Out>
-				:	[RawContextor<Inputs, Arg, Out>, Arg]
-		:	RawContextor<Inputs, Arg, Out>
-)
 
 type OptionalIfUndefined<Arg> = Arg extends undefined ? [arg?: Arg] : [arg: Arg];
 
@@ -211,7 +195,7 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 }
 
 export function isContextor<Arg, Out>(value: unknown)
-	: value is Contextor<Arg, Out, true> | Contextor<Arg, Out, false> | BoundContextor<Arg, Out>
+	: value is Contextor<Arg, Out> | BoundContextor<Arg, Out>
 {
 	return (value instanceof RawContextor) || (value instanceof Array && value[0] instanceof RawContextor);
 }
@@ -237,17 +221,17 @@ const shallowEqual = (array1: unknown[], array2: unknown[]) => (
 export function createContextor<Inputs extends Tuple<ArglessContextorInput<unknown>>, Out>(
 	inputs:		Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg?: never) => Out
-): Contextor<unknown, Out, true> & { omitted: void };
+): Contextor<unknown, Out, true>;
 
 export function createContextor<Inputs extends Tuple<ArglessContextorInput<unknown>>, Arg extends undefined, Out>(
 	inputs:		Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
-): Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, true> & { optional: void };
+): Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, true>;
 
 export function createContextor<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg, Out>(
 	inputs:		Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
-): Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, false> & { mandatory: void };
+): Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, false>;
 
 export function createContextor<Inputs extends Tuple<ContextorInput<Arg, any>>, Arg, Out>(
 	inputs:		Inputs,
@@ -355,7 +339,7 @@ function useEffectOnUpdate(effect: () => (() => void), deps: unknown[])
 }
 
 type CompatibleArgsFor<Inputs extends Tuple<ContextorInput<any, any>>> = {
-	[Index in Exclude<keyof Inputs, keyof []> as (Inputs[Index] extends (Contextor<any, any, true> | Contextor<any, any, false>) ? Index : never)]:
+	[Index in Exclude<keyof Inputs, keyof []> as (Inputs[Index] extends Contextor<any, any> ? Index : never)]:
 		ArgFor<Inputs[Index]>
 }
 
@@ -386,33 +370,53 @@ const F2 = createContextor([contextValue1], ([s], arg: { dArg: string } | undefi
 
 const FInput = createContextor([F1, F2], ([v1, v2], arg: { cArg: number, dArg: string }) => ({ val: "ADf" }));
 const GInput = createContextor([FInput, F1], ([v1, v2], arg: { cArg: number }) => "ASdf")
-F1(); // error: expects arg
-GInput(); // error: expects arg
-GInput({ cArg: 3, dArg: "asdf "});
 
 const F3 = createContextor([contextValue1], ([s], arg: { c: number, d?: string }) => 3 + (arg.c ?? 0));
 const F4 = createContextor([F3], ([s], arg: { c: number } | undefined) => null);
 const F5 = createContextor([F4], ([s], arg: { blern: string }) => String(s) + arg.blern);
 
-F3(); // error: expects { c, d? }
+const G0 = createContext({ a: 22 });
+const G1 = createContextor([G0], ([g0]) => g0.a);
+const G2 = createContextor([G0, G1], ([g0, g1]) => g0.a + g1);
+const G3 = createContextor([G0, G1], ([g0, g1], factor: number) => g0.a + g1 * factor);
+const G4 = createContextor([G2, G3], ([g2, g3]) => g2 + g3);
+const G5 = createContextor([G2, G3], ([g2, g3], negate: boolean) => negate ? -(g2 + g3) : (g2 + g3));
+const G6 = createContextor([G2, G1], ([g2, g1], negate: number | undefined) => g2 + g1);
+const G7 = createContextor([G2, G1], ([g2, g1], negate: number) => g2 + g1);
+
+F1();		// error: expects arg
+
+F2();
+FInput({ cArg: 3, dArg: "asdf" });
+
+GInput();	// error: expects arg
+
+GInput({ cArg: 3, dArg: "asdf" });
+
+F3();		// error: expects { c, d? }
+
 F3({ c: 3 });
 F3({ c: 3, d: "Adsf" });
 F4({ c: 9 });
 F5({ blern: "3", c: 3, d: undefined });
 
-const G0 = createContext({ a: 22 });
-const G1 = createContextor([G0], ([g0]) => g0.a);
 G1();
-const G2 = createContextor([G0, G1], ([g0, g1]) => g0.a + g1);
 G2();
-const G3 = createContextor([G0, G1], ([g0, g1], factor: number) => g0.a + g1 * factor);
 G3(5);
-const G4 = createContextor([G2, G3], ([g2, g3]) => g2 + g3);
-G4(); // should be an error -- wants a number
+
+G4(); 		// error: wants a number
+
 G4(3);
-const G5 = createContextor([G2, G3], ([g2, g3], negate: boolean) => negate ? -(g2 + g3) : (g2 + g3));
-G5(true); // error
-const G6 = createContextor([G2, G1], ([g2, g1], negate: number | undefined) => g2 + g1);
-G6(3); // this should NOT be an error
-const G7 = createContextor([G2, G1], ([g2, g1], negate: number) => g2 + g1);
+
+G5(true); 	// error: nothing satisfies number & boolean
+
+G6(3);
 G7(3);
+
+useContextor(contextValue1);	// error: context is not a contextor
+
+useContextor(F1);				// error: F1 requires { cArg }
+
+useContextor(F1({ cArg: 3 }));
+useContextor(F2);
+useContextor(F2({ }))	// hmmm: should prompt with dArg
