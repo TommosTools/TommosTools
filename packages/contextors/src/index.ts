@@ -380,7 +380,7 @@ const G1 = createContextor([G0], ([g0]) => g0.a);
 const G2 = createContextor([G0, G1], ([g0, g1]) => g0.a + g1);
 const G3 = createContextor([G0, G1], ([g0, g1], factor: number) => g0.a + g1 * factor);
 const G4 = createContextor([G2, G3], ([g2, g3]) => g2 + g3);
-const G5 = createContextor([G2, G3], ([g2, g3], negate: boolean) => negate ? -(g2 + g3) : (g2 + g3));
+const G5 = createContextor([G2, G3], ([g2, g3], negate: boolean) => negate ? -(g2 + g3) : (g2 + g3));	// hmmm ... it would be nice if this could warn that the arg is incompatible
 const G6 = createContextor([G2, G1], ([g2, g1], negate: number | undefined) => g2 + g1);
 const G7 = createContextor([G2, G1], ([g2, g1], negate: number) => g2 + g1);
 
@@ -423,4 +423,40 @@ useContextor(F1);				// error: F1 requires { cArg }
 
 useContextor(F1({ cArg: 3 }));
 useContextor(F2);
+useContextor(F2());
 useContextor(F2({ dArg: "asdf" }));
+
+useContextor(F3);				// error: F3 requires args
+
+useContextor(F3({ c: 3 }));
+
+useContextor(F4);				// error: F4 requires args
+
+useContextor(F4());				// error: F4 requires args
+
+useContextor(F4({ }));			// error: F4 requires c
+
+useContextor(F4({ c: 3 }));
+useContextor(F5({ blern: "Asdf", c: 3 }));
+
+useContextor(G0);				// error: context is not a contextor
+
+useContextor(G1);
+useContextor(G2);
+
+useContextor(G3);				// error: requires param
+
+useContextor(G3(3));
+
+useContextor(G4);				// error: requires param
+
+useContextor(G4(3));
+
+useContextor(G5(false));		// error: boolean & number is never
+
+useContextor(G6);
+useContextor(G6(3));
+
+useContextor(G7);				// error: requires number
+
+useContextor(G7(3));
