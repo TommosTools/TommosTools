@@ -2,14 +2,14 @@ import { Context, useContext, isContext, createContext } from "contexto";
 
 type Tuple<T> = [] | [T, ...T[]];
 
-type F<Arg, Out, Optional=boolean> =
+type F<Arg, Out, Optional> =
     true extends Optional
-        ?   () => Out | ((arg: Arg | undefined) => Out)
-        :   (arg: Arg) => Out
+        ?   ((arg?: Arg | undefined) => Out) & { optionalF: void }
+        :   ((arg: Arg) => Out) & { requiredF: void }
 
 type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) extends (x: infer R) => any ? R : never;
 
-type CompatibleArgsFor<Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any,false>>> = {
+type CompatibleArgsFor<Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any, false>>> = {
     [Index in Exclude<keyof Inputs, keyof []> as (Inputs[Index] extends (F<any, any, true> | F<any, any, false>) ? Index : never)]:
         ArgFor<Inputs[Index]>
 }
@@ -45,9 +45,9 @@ type CompatibleArgFor<Inputs extends Tuple<Context<any> | F<any, any, true> | F<
 
 type LJJLLJ = UnionToIntersection<[{ a: string } | undefined] | [{ b: string }]>[0]
 
-type YYY = CompatibleArgFor<[F<{a: number}, any>, Context<"">, F<{a: string}, any>]>
+type YYY = CompatibleArgFor<[F<{a: number}, any, boolean>, Context<"">, F<{a: string}, any, boolean>]>
 type YYY1 = CompatibleArgFor<[Context<"">]>
-type YYY2 = CompatibleArgsFor<[F<number | undefined, any>, F<string | number | undefined, any>]>
+type YYY2 = CompatibleArgsFor<[F<number | undefined, any, boolean>, F<string | number | undefined, any, boolean>]>
 type YYY4 = PredicateWrap<YYY2>[keyof YYY2];
 type LJJL = UnionToIntersection<YYY4>["predicate"]
 const LJKJLLJ: LJJL = 3;
@@ -56,34 +56,41 @@ type YYY3 = CompatibleArgFor<[ F<number, any, false>, F<number | string | undefi
 
 type OutputsOf<Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any, false>>> = {
     [Index in keyof Inputs]:
-        Inputs[Index] extends F<any, infer Out>
+        Inputs[Index] extends F<any, infer Out, boolean>
             ?   Out
             :   Inputs[Index] extends Context<infer Out>
                     ?   Out
                     :   never
 }
 
-
 function makeF<
-    Inputs extends Tuple<Context<any> | F<any, any, true>>,
-    Arg,
+    Inputs extends Tuple<Context<unknown> | F<unknown, unknown, true>>,
     Out
 >(
     inputSources: Inputs,
-    converter: (inputs: OutputsOf<Inputs>, arg: Arg | undefined) => Out
-): F<Arg & CompatibleArgFor<Inputs>, Out, true> //& { optional: void };
+    converter: (inputs: OutputsOf<Inputs>, arg?: never) => Out
+): F<CompatibleArgFor<Inputs>, Out, true>  & { omitted: void };
 
 function makeF<
-    Inputs extends Tuple<Context<any> | F<any, any, true> | F<any, any, false>>,
+    Inputs extends Tuple<Context<unknown> | F<unknown, unknown, true>>,
+    Arg extends undefined,
+    Out
+>(
+    inputSources: Inputs,
+    converter: (inputs: OutputsOf<Inputs>, arg: Arg) => Out
+): F<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, true>  & { optional: void };
+
+function makeF<
+    Inputs extends Tuple<Context<unknown> | F<any, unknown, true> | F<any, unknown, false>>,
     Arg,
     Out
 >(
     inputSources: Inputs,
     converter: (inputs: OutputsOf<Inputs>, arg: Arg) => Out
-): F<Arg & CompatibleArgFor<Inputs>, Out, false> //& { mandatory: void };
+): F<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, false>  & { mandatory: void };
 
 function makeF<
-    Inputs extends Tuple<Context<any> | F<any, any, boolean>>,
+    Inputs extends Tuple<Context<unknown> | F<any, unknown, true> | F<any, unknown, false>>,
     Arg,
     Out
 >(
@@ -145,6 +152,10 @@ G4(); // should be an error -- wants a number
 G4(3);
 const G5 = makeF([G2, G3], ([g2, g3], negate: boolean) => negate ? -(g2 + g3) : (g2 + g3));
 G5(true); // error
+const G6 = makeF([G2, G1], ([g2, g1], negate: number | undefined) => g2 + g1);
+G6(3); // this should NOT be an error
+const G7 = makeF([G2, G1], ([g2, g1], negate: number) => g2 + g1);
+G7(3);
 
 type GetArgOf<Func> = Func extends (arg: infer Arg) => any ? Arg : never;
 
