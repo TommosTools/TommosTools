@@ -385,3 +385,34 @@ const F1 = createContextor([contextValue1], ([s], arg: { cArg: number }) => 3);
 const F2 = createContextor([contextValue1], ([s], arg: { dArg: string } | undefined) => "Sadf");
 
 const FInput = createContextor([F1, F2], ([v1, v2], arg: { cArg: number, dArg: string }) => ({ val: "ADf" }));
+const GInput = createContextor([FInput, F1], ([v1, v2], arg: { cArg: number }) => "ASdf")
+F1(); // error: expects arg
+GInput(); // error: expects arg
+GInput({ cArg: 3, dArg: "asdf "});
+
+const F3 = createContextor([contextValue1], ([s], arg: { c: number, d?: string }) => 3 + (arg.c ?? 0));
+const F4 = createContextor([F3], ([s], arg: { c: number } | undefined) => null);
+const F5 = createContextor([F4], ([s], arg: { blern: string }) => String(s) + arg.blern);
+
+F3(); // error: expects { c, d? }
+F3({ c: 3 });
+F3({ c: 3, d: "Adsf" });
+F4({ c: 9 });
+F5({ blern: "3", c: 3, d: undefined });
+
+const G0 = createContext({ a: 22 });
+const G1 = createContextor([G0], ([g0]) => g0.a);
+G1();
+const G2 = createContextor([G0, G1], ([g0, g1]) => g0.a + g1);
+G2();
+const G3 = createContextor([G0, G1], ([g0, g1], factor: number) => g0.a + g1 * factor);
+G3(5);
+const G4 = createContextor([G2, G3], ([g2, g3]) => g2 + g3);
+G4(); // should be an error -- wants a number
+G4(3);
+const G5 = createContextor([G2, G3], ([g2, g3], negate: boolean) => negate ? -(g2 + g3) : (g2 + g3));
+G5(true); // error
+const G6 = createContextor([G2, G1], ([g2, g1], negate: number | undefined) => g2 + g1);
+G6(3); // this should NOT be an error
+const G7 = createContextor([G2, G1], ([g2, g1], negate: number) => g2 + g1);
+G7(3);
