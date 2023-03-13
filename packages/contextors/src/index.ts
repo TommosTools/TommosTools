@@ -230,7 +230,7 @@ export function createContextor<Inputs extends Tuple<ArglessContextorInput<unkno
 
 export function createContextor<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg, Out>(
 	inputs:		Inputs,
-	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
+	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out // [Arg & CompatibleArgFor<Inputs>] extends [never] ? never : ((inputs: OutputsFor<Inputs>, arg: Arg) => Out)
 ): Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, false> & { mandatory: void };
 
 export function createContextor<Inputs extends Tuple<ContextorInput<Arg, any>>, Arg, Out>(
