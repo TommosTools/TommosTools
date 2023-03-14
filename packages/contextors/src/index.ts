@@ -230,7 +230,21 @@ export function createContextor<Inputs extends Tuple<ArglessContextorInput<unkno
 
 export function createContextor<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg, Out>(
 	inputs:		Inputs,
-	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out // [Arg & CompatibleArgFor<Inputs>] extends [never] ? never : ((inputs: OutputsFor<Inputs>, arg: Arg) => Out)
+	combiner:	[Arg & CompatibleArgFor<Inputs>] extends [never] ? never : ((inputs: OutputsFor<Inputs>, arg: Arg) => Out)
+): Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, false> & { mandatory: void };
+
+	/*
+	Arg extends (
+		[CompatibleArgFor<Inputs>] extends [Record<any, any>]
+			?	Pick<CompatibleArgFor<Inputs>, keyof Arg & keyof CompatibleArgFor<Inputs>>
+			:	CompatibleArgFor<Inputs>
+	),
+	*/
+
+// Catch-all: won't match any inputs that didn't match the previous declaration, but will provide more useful error message
+export function createContextor<Inputs extends Tuple<ContextorInput<any, unknown>>,	Arg extends CompatibleArgFor<Inputs>, Out>(
+	inputs:		Inputs,
+	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
 ): Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, false> & { mandatory: void };
 
 export function createContextor<Inputs extends Tuple<ContextorInput<Arg, any>>, Arg, Out>(
@@ -374,6 +388,9 @@ const GInput = createContextor([FInput, F1], ([v1, v2], arg: { cArg: number }) =
 const F3 = createContextor([contextValue1], ([s], arg: { c: number, d?: string }) => 3 + (arg.c ?? 0));
 const F4 = createContextor([F3], ([s], arg: { c: number } | undefined) => null);
 const F5 = createContextor([F4], ([s], arg: { blern: string }) => String(s) + arg.blern);
+
+// FIXME TODO why isn't this an error? 
+const F6 = createContextor([F1], ([s], arg: { cArg: string }) => null);	// HMM ... should be an error
 
 const G0 = createContext({ a: 22 });
 const G1 = createContextor([G0], ([g0]) => g0.a);
