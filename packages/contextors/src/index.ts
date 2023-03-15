@@ -31,9 +31,9 @@ function isBoundContextor<Arg, Out>(contextor: Contextor<Arg, Out> | BoundContex
 	return contextor instanceof Array;
 }
 
-type ArglessContextorInput<Out> = (
-	| Context<Out>
-	| Contextor<any, Out, true>
+type ArglessContextorInput = (
+	| Context<unknown>
+	| Contextor<any, unknown, true>
 )
 
 type ContextorInput<Arg, Out> = (
@@ -218,34 +218,47 @@ const shallowEqual = (array1: unknown[], array2: unknown[]) => (
 	|| ((array1.length === array2.length) && array1.every((keyComponent, i) => keyComponent === array2[i]))
 );
 
-export function createContextor<Inputs extends Tuple<ArglessContextorInput<unknown>>, Arg, Out=never>(
+type MandatoryArgBase<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg> = (
+	[CompatibleArgFor<Inputs>] extends [Record<any, any>]
+		?	Pick<CompatibleArgFor<Inputs>, keyof Arg & keyof CompatibleArgFor<Inputs>>
+		:	CompatibleArgFor<Inputs>
+);
+
+export function createContextor<Inputs extends Tuple<ArglessContextorInput>, Arg, Out=never>(
 	inputs:		Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg | undefined) => Out
-): [Out] extends [never] ? Contextor<never, never> : Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, true> & { optional: void };
+): (
+	[Out] extends [never]
+		?	Contextor<never, never>
+		:	Contextor<Arg & CompatibleArgFor<Inputs>, Out, true>
+);
 
-export function createContextor<Inputs extends Tuple<ArglessContextorInput<unknown>>, Out>(
+export function createContextor<
+	Inputs extends Tuple<ArglessContextorInput>,
+	Out
+>(
 	inputs:		Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg?: never) => Out
-): Contextor<Exclude<CompatibleArgFor<Inputs>, undefined>, Out, true> & { omitted: void };
+): Contextor<unknown, Out, true>;
 
 export function createContextor<
 	Inputs extends Tuple<ContextorInput<any, unknown>>,
-	Arg extends (
-		[CompatibleArgFor<Inputs>] extends [Record<any, any>]
-			?	Pick<CompatibleArgFor<Inputs>, keyof Arg & keyof CompatibleArgFor<Inputs>>
-			:	CompatibleArgFor<Inputs>
-	),
+	Arg extends MandatoryArgBase<Inputs, Arg>,
 	Out
 >(
 	inputs:		Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
-): Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, false> & { mandatory: void };
+): Contextor<Arg & CompatibleArgFor<Inputs>, Out, false>;
 
 // Catch-all: won't match any inputs that didn't match the previous declaration, but will provide more useful error message
-export function createContextor<Inputs extends Tuple<ContextorInput<any, unknown>>,	Arg extends CompatibleArgFor<Inputs>, Out>(
+export function createContextor<
+	Inputs extends Tuple<ContextorInput<any, unknown>>,
+	Arg extends CompatibleArgFor<Inputs>,
+	Out
+>(
 	inputs:		Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
-): Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, false> & { mandatory: void };
+): Contextor<Arg & CompatibleArgFor<Inputs>, Out, false>;
 
 export function createContextor<Inputs extends Tuple<ContextorInput<Arg, any>>, Arg, Out>(
 	inputs:		Inputs,
