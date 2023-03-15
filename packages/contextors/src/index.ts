@@ -14,14 +14,15 @@ import {
 	useRef,
 } from "react";
 
-type Contextor<Arg, Out, ArgIsOptional extends boolean = boolean> =
+type Contextor<Arg, Out, ArgIsOptional extends boolean = boolean> = (
 	(true extends ArgIsOptional
-		?	((arg?: Arg | undefined) => BoundContextor<Arg, Out>) & { raw: RawContextor<any, Arg, Out>, __optional: void }
+		?	((arg?: Arg | undefined) => BoundContextor<Arg, Out>) & { __optional: void }
 		:	never)
 	|
 	(false extends ArgIsOptional
-		?	((arg: Arg) => BoundContextor<Arg, Out>) & { raw: RawContextor<any, Arg, Out>, __required: void }
+		?	((arg: Arg) => BoundContextor<Arg, Out>) & { __required: void }
 		:	never)
+) & { raw: RawContextor<any, Arg, Out> };
 
 type BoundContextor<Arg, Out> =	[RawContextor<any, Arg, Out>, Arg]
 
