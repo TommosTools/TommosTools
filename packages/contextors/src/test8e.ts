@@ -111,6 +111,8 @@ F1();       // error: expects arg
 GInput();   // error: expects arg
 GInput({ cArg: 3, dArg: "ADF" })
 
+// should not allow optional arg: should allow "no arg" or "arg w optional members" or even "arg that can be undefined", but not optional -- otherwise we disguise '{ x?: X }' !== `{ x: X } | undefined`
+
 type AAAAAA = CompatibleArgsFor<[typeof F1, typeof F2]>
 type LKJLKJLKJ = ArgFor<typeof F1>
 type jjl = typeof F1 extends F<any, any, infer Optional> ? Optional : never;

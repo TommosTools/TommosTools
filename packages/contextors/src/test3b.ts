@@ -4,7 +4,7 @@ type Wrapped<T> = { $$value: T; $$wrapped: true; }
 
 function wrap<T>(value: T): Wrapped<T> { return { $$value: value, $$wrapped: true }; }
 function unwrap<T>(wrapped: Wrapped<T>) { return wrapped.$$value; }
-function isWrapped(value: any): value is Wrapped<any> { return "$$wrapped" in value; }
+function isWrapped<T>(value: EvaluatorOrWrappedValue<T, {}>): value is Wrapped<T> { return "$$wrapped" in value; }
 
 type Evaluator<Output, Arg> = (arg: Arg) => Output;
 

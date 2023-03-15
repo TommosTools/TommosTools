@@ -1,9 +1,11 @@
 import react from "react";
-import { Context, createContext, useContext, isContext } from "contexto";
+//import { Context, createContext, useContext, isContext } from "contexto";
+import { Context, createContext, useContext } from "react";
+const isContext = (value: any): value is Context<any> => true;
 
 type Tuple<T> = [] | [T, ...T[]]
 
-class RawContextor<T, Inputs extends Tuple<ContextorInput<any, Arg>>, Arg>
+class RawContextor<T, Inputs extends Tuple<ContextorInput<any, any>>, Arg>
 {
     constructor(
         private inputs: Inputs,
@@ -21,24 +23,29 @@ type ContextorInput<T, Arg> = Context<T> | RawContextor<T, any, Arg>
 
 type OutputFor<Input, Arg> = Input extends RawContextor<infer T, any, Arg> ? T : never;
 
-type OutputsFor<Inputs, Arg> = { [K in keyof Inputs]: OutputFor<Inputs[K], Arg> };
+type OutputsFor<Inputs, Arg> = {
+    [K in keyof Inputs]: K extends keyof [] ? Inputs[K] : OutputFor<Inputs[K], Arg>
+};
 
 type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) extends (x: infer R) => any ? R : never;
 
-type ArgsFor<Inputs extends Tuple<ContextorInput<any, any>>> = {
-	[Index in keyof Inputs]: (
+type ArgsFor<Inputs> = {
+	[Index in keyof Inputs as Inputs[Index] extends RawContextor<any, any, any> ? Index : never]: (
         // TODO FIXME: filter this down to just the RawContextor inputs
-		Inputs[Index] extends ContextorInput<any, infer Arg> ? Arg : Inputs[Index]
+		Inputs[Index] extends RawContextor<any, any, infer Arg> ? Arg : any
 	)
 }
 
-type ArgFor<Inputs extends Tuple<ContextorInput<any, any>>> =
-	UnionToIntersection<ArgsFor<Inputs>[number]>;
+type ArgFor<Inputs> =
+	UnionToIntersection<ArgsFor<Inputs>[keyof ArgsFor<Inputs>]>;
 
-function createContextor<T, Inputs extends Tuple<ContextorInput<any, any>>>(
+type Test = [RawContextor<any, any, {a:number}>, Context<{b:number}>, RawContextor<any, any, {c:number}>];
+type X = ArgFor<Test>
+
+function createContextor<T, Inputs extends Tuple<ContextorInput<T, any>>, Arg extends ArgFor<Inputs>>(
 	inputs: Inputs,
-	combiner: (values: OutputsFor<Inputs, ArgFor<Inputs>>, arg: ArgFor<Inputs>) => T
-): ContextorInput<T, ArgFor<Inputs>>
+	combiner: (values: OutputsFor<Inputs, ArgFor<Inputs>>, arg: Arg) => T
+): ContextorInput<T, Arg>
 {
     return new RawContextor(inputs, combiner);
 }

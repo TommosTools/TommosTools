@@ -6,9 +6,10 @@ type F<Arg, Out> = (arg: Arg) => Out;
 
 type InputsFor<Ins extends Tuple<any>, Arg> = {
     [Index in keyof Ins]:
-        Index extends number
-            ?   (F<Arg, Ins[Index]> | Context<Ins[Index]>)
-            :   Ins[Index]
+    Context<Ins[Index]> | F<Arg, Ins[Index]>
+        // Index extends keyof []
+        //     ?   Ins[Index]
+        //     :   (Context<Ins[Index]>) // (F<Arg, Ins[Index]> | Context<Ins[Index]>)
 }
 
 function makeF<Ins extends Tuple<any>, Arg, Out>(
@@ -26,5 +27,6 @@ function makeF<Ins extends Tuple<any>, Arg, Out>(
 }
 
 const contextValue1 = createContext({ a: 5 });
-const F1 = makeF([contextValue1], (s, arg: { c: number }) => 3);
+const F1 = makeF([contextValue1], ([s], arg: { c: number }) => 3);
+const F2 = makeF([contextValue1], ([s], arg: { d: string }) => "Sadf");
 const FInput = makeF([F1], (v1, arg: { c: number, d: string }) => null);
