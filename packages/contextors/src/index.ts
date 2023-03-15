@@ -218,28 +218,28 @@ const shallowEqual = (array1: unknown[], array2: unknown[]) => (
 	|| ((array1.length === array2.length) && array1.every((keyComponent, i) => keyComponent === array2[i]))
 );
 
-export function createContextor<Inputs extends Tuple<ArglessContextorInput<unknown>>, Arg, Out>(
+export function createContextor<Inputs extends Tuple<ArglessContextorInput<unknown>>, Arg, Out=never>(
 	inputs:		Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg | undefined) => Out
-): Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, true> & { optional: void };
+): [Out] extends [never] ? Contextor<never, never> : Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, true> & { optional: void };
 
 export function createContextor<Inputs extends Tuple<ArglessContextorInput<unknown>>, Out>(
 	inputs:		Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg?: never) => Out
 ): Contextor<Exclude<CompatibleArgFor<Inputs>, undefined>, Out, true> & { omitted: void };
 
-export function createContextor<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg, Out>(
-	inputs:		Inputs,
-	combiner:	[Arg & CompatibleArgFor<Inputs>] extends [never] ? never : ((inputs: OutputsFor<Inputs>, arg: Arg) => Out)
-): Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, false> & { mandatory: void };
-
-	/*
+export function createContextor<
+	Inputs extends Tuple<ContextorInput<any, unknown>>,
 	Arg extends (
 		[CompatibleArgFor<Inputs>] extends [Record<any, any>]
 			?	Pick<CompatibleArgFor<Inputs>, keyof Arg & keyof CompatibleArgFor<Inputs>>
 			:	CompatibleArgFor<Inputs>
 	),
-	*/
+	Out
+>(
+	inputs:		Inputs,
+	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
+): Contextor<Exclude<Arg, undefined> & CompatibleArgFor<Inputs>, Out, false> & { mandatory: void };
 
 // Catch-all: won't match any inputs that didn't match the previous declaration, but will provide more useful error message
 export function createContextor<Inputs extends Tuple<ContextorInput<any, unknown>>,	Arg extends CompatibleArgFor<Inputs>, Out>(
@@ -389,15 +389,14 @@ const F3 = createContextor([contextValue1], ([s], arg: { c: number, d?: string }
 const F4 = createContextor([F3], ([s], arg: { c: number } | undefined) => null);
 const F5 = createContextor([F4], ([s], arg: { blern: string }) => String(s) + arg.blern);
 
-// FIXME TODO why isn't this an error? 
-const F6 = createContextor([F1], ([s], arg: { cArg: string }) => null);	// HMM ... should be an error
+const F6 = createContextor([F1], ([s], arg: { cArg: string }) => null);	// error: { cArg: string } is incompatible with { cArg: number }
 
 const G0 = createContext({ a: 22 });
 const G1 = createContextor([G0], ([g0]) => g0.a);
 const G2 = createContextor([G0, G1], ([g0, g1]) => g0.a + g1);
 const G3 = createContextor([G0, G1], ([g0, g1], factor: number) => g0.a + g1 * factor);
 const G4 = createContextor([G2, G3], ([g2, g3]) => g2 + g3);
-const G5 = createContextor([G2, G3], ([g2, g3], negate: boolean) => negate ? -(g2 + g3) : (g2 + g3));	// hmmm ... it would be nice if this could warn that the arg is incompatible
+const G5 = createContextor([G2, G3], ([g2, g3], negate: boolean) => negate ? -(g2 + g3) : (g2 + g3));	// error: boolean is incompatible with number
 const G6 = createContextor([G2, G1], ([g2, g1], negate: number | undefined) => g2 + g1);
 const G7 = createContextor([G2, G1], ([g2, g1], negate: number) => g2 + g1);
 
