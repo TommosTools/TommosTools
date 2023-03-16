@@ -225,6 +225,16 @@ type MandatoryArgBase<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg> =
 		:	CompatibleArgFor<Inputs>
 );
 
+//
+// Match combiners with an OPTIONAL argument.
+// A combiner with an optional argument is not compatible with inputs that have a mandatory argument.
+// It is compatible with any inputs that have an optional argument, because the argument may be
+// omitted, or supplied as undefined.
+//
+// This first case also provides the default return type when none of the declarations match,
+// in which case TS cannot infer `Out` so we default it to `never`, and specify the return type as 
+// a Contextor<never, never>, which will be flagged as an error if it is used elsewhere.
+//
 export function createContextor<Inputs extends Tuple<ArglessContextorInput>, Arg, Out=never>(
 	inputs:		Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg | undefined) => Out
@@ -490,3 +500,9 @@ useContextor(G6(3));
 useContextor(G7);				// error: requires number
 
 useContextor(G7(3));
+
+const G8 = createContextor([G0], ([g0], arg: { foo: number }) => 3);
+const G9 = createContextor([G8], ([g8], arg: { foo: number } | undefined) => 3);
+
+const G10 = createContextor([G8], ([g0], arg: { foo: string }) => 3);
+const G11 = createContextor([G10], ([g10], arg: any) => 3);
