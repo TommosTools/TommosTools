@@ -165,7 +165,9 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 
 		let cacheRef = this.cache;
 
-		for (const input of inputValues)
+		const inputValuesWithArg = [...inputValues, arg];
+
+		for (const input of inputValuesWithArg)
 		{
 			if (isObject(input))
 			{
@@ -183,14 +185,14 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 
 		const terminalCache = cacheRef.get(this.TerminalCacheKey);
 
-		if (isTerminalCache(terminalCache) && shallowEqual(terminalCache.keys, inputValues))
+		if (isTerminalCache(terminalCache) && shallowEqual(terminalCache.keys, inputValuesWithArg))
 		{
 			// Cached value was found
 			return terminalCache.value;
 		}
 		// Recompute value, and store in cache
 		const value = this.combiner(inputValues, arg);
-		cacheRef.set(this.TerminalCacheKey, { keys: [...inputValues], value });
+		cacheRef.set(this.TerminalCacheKey, { keys: inputValuesWithArg, value });
 		return value;
 	}
 }
@@ -318,6 +320,14 @@ function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>):
 	}
 }
 
+//
+// Consume and subscribe to updates of a contextor's value in a function component.
+//
+// @param contextor
+// A Contextor previously created with `createContextor`, with bound argument as required.
+//
+// @returns - The latest value of the contextor within the calling component.
+//
 export function useContextor<Arg, Out>(contextor: UseContextorInput<Arg, Out>): Out
 {
 	const subscriber = useSubscriber();
