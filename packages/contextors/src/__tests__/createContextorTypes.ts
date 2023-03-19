@@ -3,12 +3,22 @@
  */
 
 import { renderHook } from "@testing-library/react";
+import { assert } from "console";
 import { createContext } from "contexto";
 import { createContextor, useContextor } from "..";
 
 const Context1 = createContext({ contextValue: 42 }, { contextId: "Context1" });
 
 const consoleErrorFn = jest.spyOn(console, 'error').mockImplementation(() => jest.fn());
+
+class ExpectedNumberError extends Error {}
+class ExpectedStringError extends Error {}
+class ExpectedBooleanError extends Error {}
+class ExpectedObjectError extends Error {}
+function expectNumber(x: number) { if (typeof x === "number") return x; throw new ExpectedNumberError(); }
+function expectString(x: string) { if (typeof x === "string") return x; throw new ExpectedStringError(); }
+function expectBoolean(x: boolean) { if (typeof x === "boolean") return x; throw new ExpectedBooleanError(); }
+function expectObject(x: object) { if (typeof x === "object") return x; throw new ExpectedObjectError(); }
 
 test("Create and use contextor with mandatory argument", () =>
 	{
@@ -34,7 +44,7 @@ test("Create and use contextor with optional argument", () =>
 		const Contextor = createContextor(
 			[Context1],
 			([context1], arg: { stringArg: string } | undefined) =>
-				String(context1.contextValue) + (arg?.stringArg ?? "")
+				String(expectNumber(context1.contextValue)) + expectString(arg?.stringArg ?? "")
 		);
 
 		expect(renderHook(() =>
@@ -59,7 +69,7 @@ test("Create and use contextor with no argument", () =>
 	{
 		const Contextor = createContextor(
 			[Context1],
-			([context1]) => context1.contextValue * 2
+			([context1]) => expectNumber(context1.contextValue) * 2
 		);
 		
 		expect(renderHook(() =>
@@ -78,10 +88,10 @@ test("Create and use contextor with no argument", () =>
 
 test("Create contextor from contextor inputs with structured arguments", () =>
 	{
-		const Input1 = createContextor([Context1], ([context1], arg: { numericArg: number }) => context1.contextValue + arg.numericArg);
-		const Input2 = createContextor([Context1], ([context1], arg: { stringArg: string }) => context1.contextValue * arg.stringArg.length);
+		const Input1 = createContextor([Context1], ([context1], arg: { numericArg: number }) => expectNumber(context1.contextValue) + expectNumber(arg.numericArg));
+		const Input2 = createContextor([Context1], ([context1], arg: { stringArg: string }) => expectNumber(context1.contextValue) * expectString(arg.stringArg).length);
 
-		const Contextor = createContextor([Input1, Input2], ([input1, input2]) => String(input1) + "/" + input2);
+		const Contextor = createContextor([Input1, Input2], ([input1, input2]) => String(expectNumber(input1)) + "/" + expectNumber(input2));
 
 		expect(() => renderHook(() =>
 			// @ts-expect-error -- contextor requires an argument, so the bare call is forbidden
@@ -91,7 +101,7 @@ test("Create contextor from contextor inputs with structured arguments", () =>
 		expect(() => renderHook(() =>
 			// @ts-expect-error -- { numericArg: number } does not satisfy { stringArg: string }
 			useContextor(Contextor({ numericArg: 3 }))			// Equivalent to bare call
-		)).toThrow(TypeError);
+		)).toThrow(ExpectedStringError);
 
 		expect(renderHook(() =>
 			useContextor(Contextor({ numericArg: 3, stringArg: "abcdefghij" }))
@@ -114,66 +124,90 @@ test("Create contextor from contextor inputs with simple/no arguments", () =>
 		).result.current).toBe(23 + 37);
 
 		// Basic: create a contextor just from a context
-		const Contextor = createContextor([Context1], ([context1]) => context1.contextValue);
+		const BaseInput = createContextor([Context1], ([context1]) => context1.contextValue);
 		expect(renderHook(() =>
-			useContextor(Contextor)
+			useContextor(BaseInput)
 		).result.current).toBe(42);
 
 		// Create a contextor that combines a Context and an argless Contextor
-		const Input0 = createContextor([Contextor], ([contextor]) => contextor * 2);
-		const ContextCombinedWithArglessContextor = createContextor([Context1, Input0], ([context1, input0]) => context1.contextValue + input0);
+		const Input0 = createContextor([BaseInput], ([baseInput]) => baseInput * 2);
+		const ContextCombinedWithArglessContextor = createContextor(
+			[Context1, Input0],
+			([context1, input0]) => expectNumber(context1.contextValue) + expectNumber(input0)
+		);
 		expect(renderHook(() =>
 			useContextor(ContextCombinedWithArglessContextor)
 		).result.current).toBe(42 + 42 * 2);
 
 		// Create a contextor that combines a Context and a Contextor that requires an arg
-		const Input1 = createContextor([Contextor], ([contextor], factor: number) => contextor * factor);
-		const ContextCombinedWithArgContextor = createContextor([Context1, Input1], ([context1, input1]) => context1.contextValue + input1);
-		expect(renderHook(() =>
+		const Input1 = createContextor([BaseInput], ([baseInput], factor: number) => expectNumber(baseInput) * expectNumber(factor));
+		const ContextCombinedWithArgContextor = createContextor(
+			[Context1, Input1],
+			([context1, input1]) => expectNumber(context1.contextValue) + expectNumber(input1)
+		);
+		expect(() => renderHook(() =>
 			// @ts-expect-error -- required arg is being omitted
 			useContextor(ContextCombinedWithArgContextor)
-		).result.current).toBeNaN();
+		)).toThrow(ExpectedNumberError);
 		expect(renderHook(() =>
 			useContextor(ContextCombinedWithArgContextor(3))
 		).result.current).toBe(42 + 42 * 3);
 
 		// Create a contextor that combines a Contextor that does not require an arg and a Contextor that requires an arg
-		const ArglessContextorCombinedWithArgContextor = createContextor([Input0, Input1], ([input0, input1]) => input0 + input1);
-		expect(renderHook(() =>
+		const ArglessContextorCombinedWithArgContextor = createContextor(
+			[Input0, Input1],
+			([input0, input1]) => expectNumber(input0) + expectNumber(input1)
+		);
+		expect(() => renderHook(() =>
 			// @ts-expect-error -- required arg is being omitted
 			useContextor(ArglessContextorCombinedWithArgContextor)
-		).result.current).toBeNaN();
+		)).toThrow(ExpectedNumberError);
 		expect(renderHook(() =>
 			useContextor(ArglessContextorCombinedWithArgContextor(3))
 		).result.current).toBe(42 * 2 + 42 * 3);
 
+		const Input2 = createContextor(
+			[BaseInput],
+			([baseInput], exp: number) => Math.pow(expectNumber(baseInput), expectNumber(exp))
+		);
 
-		const Input2 = createContextor([Contextor], ([contextor], negate: boolean) => negate ? -contextor : contextor);
-
-		// @ts-expect-error -- input1 and input2 have incompatible arguments
-		const IncompatibleCombined = createContextor([Input1, Input2], ([input1, input2]) => input1 * input2);
-
-		expect(renderHook(() =>
-			// @ts-expect-error -- IncompatibleCombined is not a valid Contextor
-			useContextor(IncompatibleCombined)
-		).result.current).toBeNaN();	// because supplying an undefined `factor` to `Input1` results in NaN
-
-		const Input3 = createContextor([Contextor], ([contextor], exp: number) => Math.pow(contextor, exp));
-
-		const CompatibleCombined = createContextor([Input1, Input3], ([input1, input3]) => input1 + input3);
-
+		// Create a contextor that combines contextors with compatible args
+		const CompatibleCombined = createContextor(
+			[Input1, Input2],
+			([input1, input2]) => expectNumber(input1) + expectNumber(input2)
+		);
 		expect(renderHook(() =>
 			useContextor(CompatibleCombined(2))
 		).result.current).toBe(42 * 2 + 42 * 42)
 
-		// @ts-expect-error -- Input1 and Input3 have arg `number`, which is incompatible with combiner arg `string`
-		const CompatibleCombinedWithOwnIncompatibleArg = createContextor([Input1, Input3], ([input1, input3], salt: string) => salt.indexOf("x") + (input1 - input3));
-
+		// Prevent creation of contextor that combines contextors with incompatible args
+		const CompatibleCombinedWithOwnIncompatibleArg = createContextor(
+			[Input1, Input2],
+			// @ts-expect-error -- Input1 and Input2 have arg `number`, which is incompatible with combiner arg `string`
+			([input1, input2], salt: string) => expectString(salt).indexOf("x") + (expectNumber(input1) - expectNumber(input2))
+		);
 		expect(() => renderHook(() =>
 			// @ts-expect-error -- CompatibleCombinedWithOwnIncompatibleArg is not a valid Contextor
 			useContextor(CompatibleCombinedWithOwnIncompatibleArg(2))
-		)).toThrow(TypeError);
+		)).toThrow(ExpectedStringError);
 
+		const Input3 = createContextor([BaseInput], ([baseInput], negate: boolean) => expectBoolean(negate) ? -expectNumber(baseInput) : expectNumber(baseInput));
+
+		const IncompatibleCombined = createContextor(
+			// @ts-expect-error -- Input1 and Input3 have incompatible arguments
+			[Input1, Input3],
+			// @ts-expect-error -- Input1 and Input3 have incompatible arguments
+			([input1, input3]) => expectNumber(input1) * expectNumber(input3)
+		);
+
+		expect(() => renderHook(() =>
+			// @ts-expect-error -- IncompatibleCombined is not a valid Contextor
+			useContextor(IncompatibleCombined)
+		)).toThrow(ExpectedNumberError);
+		expect(() => renderHook(() =>
+			// @ts-expect-error -- IncompatibleCombined is not a valid Contextor
+			useContextor(IncompatibleCombined(true))
+		)).toThrow(ExpectedNumberError);
 	}
 )
 
