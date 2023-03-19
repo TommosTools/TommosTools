@@ -221,9 +221,15 @@ const shallowEqual = (array1: unknown[], array2: unknown[]) => (
 	|| ((array1.length === array2.length) && array1.every((keyComponent, i) => keyComponent === array2[i]))
 );
 
+type IfAny<T, Y, N> = 0 extends (1 & T) ? Y : N
+type IsAny<T> = IfAny<T, true, never>
+type IsUnknown<T> = IsAny<T> extends true ? never : unknown extends T ? true : never
+
 type MandatoryArgBase<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg> = (
 	[CompatibleArgFor<Inputs>] extends [Record<any, any>]
-		?	Pick<CompatibleArgFor<Inputs>, keyof Arg & keyof CompatibleArgFor<Inputs>>
+		?	true extends IsUnknown<Arg>
+				?	CompatibleArgFor<Inputs>
+				:	Pick<CompatibleArgFor<Inputs>, keyof Arg & keyof CompatibleArgFor<Inputs>>
 		:	CompatibleArgFor<Inputs>
 );
 
@@ -272,7 +278,7 @@ export function createContextor<
 	Arg extends MandatoryArgBase<Inputs, Arg>,
 	Out
 >(
-	inputs:		Inputs,
+	inputs:		[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
 ): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
 
@@ -285,7 +291,7 @@ export function createContextor<
 	Arg extends CompatibleArgFor<Inputs>,
 	Out
 >(
-	inputs:		Inputs,
+	inputs:		[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
 ): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
 
@@ -420,122 +426,12 @@ type WrapArg<T> = {
     [K in keyof T]: { arg: T[K] }
 }
 
+type HandleWrappedNever<T> = [T] extends [never] ? { arg: never } : T;
+
 type CompatibleArgFor<Inputs extends Tuple<ContextorInput<any, any>>> =
 	({} extends CompatibleArgsFor<Inputs>
 		?   { arg: unknown }    // There are no args to be compatible with
-		:   UnionToIntersection<
+		:   HandleWrappedNever<UnionToIntersection<
 				WrapArg<CompatibleArgsFor<Inputs>>[keyof CompatibleArgsFor<Inputs>]
-			>
+			>>
 	) extends { arg: infer Arg } ? Arg : never;
-
-const contextValue1 = createContext({ a: 5 });
-const F1 = createContextor([contextValue1], ([s], arg: { cArg: number }) => 3);
-const F2 = createContextor([contextValue1], ([s], arg: { dArg: string } | undefined) => "Sadf");
-
-const FInput = createContextor([F1, F2], ([v1, v2], arg: { cArg: number, dArg: string }) => ({ val: "ADf" }));
-const GInput = createContextor([FInput, F1], ([v1, v2], arg: { cArg: number }) => "ASdf")
-
-const F3 = createContextor([contextValue1], ([s], arg: { c: number, d?: string }) => 3 + (arg.c ?? 0));
-const F4 = createContextor([F3], ([s], arg: { c: number } | undefined) => null);
-const F5 = createContextor([F4], ([s], arg: { blern: string }) => String(s) + arg.blern);
-
-const F6 = createContextor([F1], ([s], arg: { cArg: string }) => null);	// error: { cArg: string } is incompatible with { cArg: number }
-
-const G0 = createContext({ a: 22 });
-const G1 = createContextor([G0], ([g0]) => g0.a);
-const G2 = createContextor([G0, G1], ([g0, g1]) => g0.a + g1);
-const G3 = createContextor([G0, G1], ([g0, g1], factor: number) => g0.a + g1 * factor);
-const G4 = createContextor([G2, G3], ([g2, g3]) => g2 + g3);
-const G5 = createContextor([G2, G3], ([g2, g3], negate: boolean) => negate ? -(g2 + g3) : (g2 + g3));	// error: boolean is incompatible with number
-const G6 = createContextor([G2, G1], ([g2, g1], negate: number | undefined) => g2 + g1);
-const G7 = createContextor([G2, G1], ([g2, g1], negate: number) => g2 + g1);
-
-F1();		// error: expects arg
-
-F2();
-
-F2({});		// error: must supply dArg
-
-F2({ dArg: "Asdf" });
-FInput({ cArg: 3, dArg: "asdf" });
-
-GInput();	// error: expects arg
-
-GInput({ cArg: 3, dArg: "asdf" });
-
-F3();		// error: expects { c, d? }
-
-F3({ c: 3 });
-F3({ c: 3, d: "Adsf" });
-F4({ c: 9 });
-F5({ blern: "3", c: 3, d: undefined });
-
-G1();
-G2();
-G3(5);
-
-G4(); 		// error: wants a number
-
-G4(3);
-
-G5(true); 	// error: nothing satisfies number & boolean
-
-G6(3);
-G7(3);
-
-useContextor(contextValue1);	// error: context is not a contextor
-
-useContextor(F1);				// error: F1 requires { cArg }
-
-useContextor(F1({ cArg: 3 }));
-useContextor(F2);
-useContextor(F2());
-useContextor(F2({ dArg: "asdf" }));
-
-useContextor(F3);				// error: F3 requires args
-
-useContextor(F3({ c: 3 }));
-
-useContextor(F4);				// error: F4 requires args
-
-useContextor(F4());				// error: F4 requires args
-
-useContextor(F4({ }));			// error: F4 requires c
-
-useContextor(F4({ c: 3 }));
-useContextor(F5({ blern: "Asdf", c: 3 }));
-
-useContextor(G0);				// error: context is not a contextor
-
-useContextor(G1);
-useContextor(G2);
-
-useContextor(G3);				// error: requires param
-
-useContextor(G3(3));
-
-useContextor(G4);				// error: requires param
-
-useContextor(G4(3));
-
-useContextor(G5(false));		// error: boolean & number is never
-
-useContextor(G6);
-useContextor(G6(3));
-
-useContextor(G7);				// error: requires number
-
-useContextor(G7(3));
-
-const G8 = createContextor([G0], ([g0], arg: { foo: number }) => 3);
-const G9 = createContextor([G8], ([g8], arg: { foo: number } | undefined) => 3);
-
-const G10 = createContextor([G8], ([g0], arg: { foo: string }) => 3);	// error: { foo: string } is incompatible with { foo: number }
-const G11 = createContextor([G10], ([g10], arg: any) => 3);				// error: can't use unusable contextor as input
-
-const G12 = createContextor([contextValue1], ([v1]) => String(3));
-const G13 = createContextor([G12], ([g12], arg?: { nest1: { nest: number } }) => String(arg ? arg.nest1.nest + 3 : 3) + g12);
-const G14 = createContextor([G13], ([g13], arg?: { nest2: { nest: number } }) => String(arg ? arg.nest2.nest + 3 : 3) + g13);
-
-const G15 = createContextor([contextValue1], ([v1], arg: [first: number, second: string]) => String(3 + arg[0]));
-const G16 = createContextor([G15], ([g15], arg: [first: number, second: string]) => String(3 + arg[0]));
