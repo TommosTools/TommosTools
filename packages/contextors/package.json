@@ -19,7 +19,8 @@
   "scripts": {
     "compile": "tsup src/index.ts",
     "lint": "eslint 'src/**/*.ts'",
-    "test": "jest"
+    "test": "jest",
+    "type-check": "tsc"
   },
   "type": "module",
   "main": "./dist/index.cjs",
