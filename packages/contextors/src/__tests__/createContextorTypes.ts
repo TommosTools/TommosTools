@@ -18,7 +18,7 @@ class ExpectedObjectError extends Error {}
 function expectNumber(x: number) { if (typeof x === "number") return x; throw new ExpectedNumberError(); }
 function expectString(x: string) { if (typeof x === "string") return x; throw new ExpectedStringError(); }
 function expectBoolean(x: boolean) { if (typeof x === "boolean") return x; throw new ExpectedBooleanError(); }
-function expectObject(x: object) { if (typeof x === "object") return x; throw new ExpectedObjectError(); }
+function expectObject<T extends object>(x: T): T { if (typeof x === "object") return x; throw new ExpectedObjectError(); }
 
 test("Create and use contextor with single context input and mandatory argument", () =>
 	{
@@ -309,6 +309,58 @@ test("Optional arg combinations", () =>
 	}
 );
 
+test("Combining simple arg and structured arg should fail", () =>
+	{
+		const Input1 = createContextor(
+			[Context1],
+			([context1], arg: number) =>
+				expectNumber(context1.contextValue) + expectNumber(arg)
+		);
+		const Input2 = createContextor(
+			[Context1],
+			([context1], arg: { numericArg: number }) =>
+				expectNumber(context1.contextValue) + expectObject(arg).numericArg
+		);
+
+		const Combined = createContextor(
+			// @ts-expect-error -- (number & { numericArg: number }) cannot be fulfilled
+			[Input1, Input2],
+			([input1, input2]) =>
+				// @ts-expect-error -- inputs have unknown types because of invalid invocation
+				input1 + input2
+		);
+
+		expect(() => renderHook(() =>
+			// @ts-expect-error -- 42 doesn't satisfy { numericArg: number }
+			useContextor(Combined(42))
+		)).toThrow(ExpectedObjectError);
+
+		const IncompatibleArg1 = createContextor(
+			[Input1],
+			// @ts-expect-error -- { numericArg: number } is not compatible with existing arg number
+			([input1], arg: { numericArg: number }) =>
+				expectNumber(input1) + expectObject(arg).numericArg
+		);
+
+		expect(() => renderHook(() =>
+			// @ts-expect-error -- 42 doesn't satisfy { numericArg: number }
+			useContextor(Combined(42))
+		)).toThrow(ExpectedObjectError);
+
+		const IncompatibleArg2 = createContextor(
+			[Input2],
+			// @ts-expect-error -- number is not compatible with { numericArg: number }
+			([input2], arg: number) =>
+				// @ts-expect-error -- improper contextor infers wrong type for input2
+				expectObject(input2).numericArg + expectNumber(arg)
+		);
+
+		expect(() => renderHook(() =>
+			// @ts-expect-error -- 42 doesn't satisfy { numericArg: number }
+			useContextor(Combined({ numericArg: 42 }))
+		)).toThrow(ExpectedNumberError);
+	}
+);
 
 
 /*

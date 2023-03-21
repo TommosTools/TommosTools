@@ -221,18 +221,6 @@ const shallowEqual = (array1: unknown[], array2: unknown[]) => (
 	|| ((array1.length === array2.length) && array1.every((keyComponent, i) => keyComponent === array2[i]))
 );
 
-type IfAny<T, Y, N> = 0 extends (1 & T) ? Y : N
-type IsAny<T> = IfAny<T, true, never>
-type IsUnknown<T> = IsAny<T> extends true ? never : unknown extends T ? true : never
-
-type MandatoryArgBase<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg> = (
-	[CompatibleArgFor<Inputs>] extends [Record<any, any>]
-		?	true extends IsUnknown<Arg>
-				?	CompatibleArgFor<Inputs>
-				:	Pick<CompatibleArgFor<Inputs>, keyof Arg & keyof CompatibleArgFor<Inputs>>
-		:	CompatibleArgFor<Inputs>
-);
-
 type Simplify<T> = T extends object ? { [K in keyof T]: T[K] } : T;
 
 //
@@ -275,7 +263,7 @@ export function createContextor<
 //
 export function createContextor<
 	Inputs extends Tuple<ContextorInput<any, unknown>>,
-	Arg extends MandatoryArgBase<Inputs, Arg>,
+	Arg extends CompatibleArgFor<Inputs>,
 	Out
 >(
 	inputs:		[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
@@ -434,4 +422,6 @@ type CompatibleArgFor<Inputs extends Tuple<ContextorInput<any, any>>> =
 		:   HandleWrappedNever<UnionToIntersection<
 				WrapArg<CompatibleArgsFor<Inputs>>[keyof CompatibleArgsFor<Inputs>]
 			>>
-	) extends { arg: infer Arg } ? Arg : never;
+	) extends { arg: infer Arg }
+		?	[Arg] extends [object] ? (Arg & object) : Arg	// force (primitive & { ... }) to map to never
+		:	never;
