@@ -344,7 +344,7 @@ test("Combining simple arg and structured arg should fail", () =>
 
 		expect(() => renderHook(() =>
 			// @ts-expect-error -- 42 doesn't satisfy { numericArg: number }
-			useContextor(Combined(42))
+			useContextor(IncompatibleArg1(42))
 		)).toThrow(ExpectedObjectError);
 
 		const IncompatibleArg2 = createContextor(
@@ -356,9 +356,9 @@ test("Combining simple arg and structured arg should fail", () =>
 		);
 
 		expect(() => renderHook(() =>
-			// @ts-expect-error -- 42 doesn't satisfy { numericArg: number }
-			useContextor(Combined({ numericArg: 42 }))
-		)).toThrow(ExpectedNumberError);
+			// @ts-expect-error -- 42 doesn't satisfy number
+			useContextor(IncompatibleArg2({ numericArg: 42 }))
+		)).toThrow(ExpectedObjectError);
 	}
 );
 
