@@ -243,6 +243,24 @@ test("Create contextor from contextor inputs with structured arguments", () =>
 		expect(renderHook(() =>
 			useContextor(Combined({ numericArg: 3, stringArg: "abcde" }))
 		).result.current).toBe("45/210")
+
+		// This should work -- { numericArg: number, stringArg: string } should satisfy both
+		const CompatibleArg = createContextor(
+			[Input1],
+			([input1], arg: { stringArg: string }) =>
+				expectNumber(input1) + "/" + expectString(arg.stringArg)
+		);
+
+		expect(renderHook(() =>
+			useContextor(CompatibleArg({ numericArg: 1000, stringArg: "str" }))
+		).result.current).toBe("1042/str");
+
+		const IncompatibleArg = createContextor(
+			[Input1],
+			// @ts-expect-error -- { numericArg: number } is incompatible with { numericArg: string }
+			([input1], arg: { numericArg: string }) =>
+				input1 + arg.numericArg.length
+		);
 	}
 );
 
@@ -359,17 +377,6 @@ test("Combining simple arg and structured arg should fail", () =>
 			// @ts-expect-error -- 42 doesn't satisfy number
 			useContextor(IncompatibleArg2({ numericArg: 42 }))
 		)).toThrow(ExpectedObjectError);
-
-		// This should work -- { numericArg: number, stringArg: string } should satisfy both
-		const CompatibleArg = createContextor(
-			[Input2],
-			([input2], arg: { stringArg: string }) =>
-				expectNumber(input2) + "/" + expectString(arg.stringArg)
-		);
-
-		expect(renderHook(() =>
-			useContextor(CompatibleArg({ numericArg: 1000, stringArg: "str" }))
-		).result.current).toBe("1042/str");
 	}
 );
 
