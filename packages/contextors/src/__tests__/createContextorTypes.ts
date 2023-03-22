@@ -359,9 +359,19 @@ test("Combining simple arg and structured arg should fail", () =>
 			// @ts-expect-error -- 42 doesn't satisfy number
 			useContextor(IncompatibleArg2({ numericArg: 42 }))
 		)).toThrow(ExpectedObjectError);
+
+		// This should work -- { numericArg: number, stringArg: string } should satisfy both
+		const CompatibleArg = createContextor(
+			[Input2],
+			([input2], arg: { stringArg: string }) =>
+				expectNumber(input2) + "/" + expectString(arg.stringArg)
+		);
+
+		expect(renderHook(() =>
+			useContextor(CompatibleArg({ numericArg: 1000, stringArg: "str" }))
+		).result.current).toBe("1042/str");
 	}
 );
-
 
 /*
 const contextValue1 = createContext({ contextValue: 42 }, { contextId: "Context1" });

@@ -221,6 +221,12 @@ const shallowEqual = (array1: unknown[], array2: unknown[]) => (
 	|| ((array1.length === array2.length) && array1.every((keyComponent, i) => keyComponent === array2[i]))
 );
 
+type MandatoryArgBase<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg> = (
+	[CompatibleArgFor<Inputs>, Arg] extends [object, object]
+		?	Pick<CompatibleArgFor<Inputs>, (keyof Arg) & (keyof CompatibleArgFor<Inputs>)>
+		:	CompatibleArgFor<Inputs>
+);
+
 type Simplify<T> = T extends object ? { [K in keyof T]: T[K] } : T;
 
 //
@@ -263,7 +269,7 @@ export function createContextor<
 //
 export function createContextor<
 	Inputs extends Tuple<ContextorInput<any, unknown>>,
-	Arg extends CompatibleArgFor<Inputs>,
+	Arg extends MandatoryArgBase<Inputs, Arg>,
 	Out
 >(
 	inputs:		[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
