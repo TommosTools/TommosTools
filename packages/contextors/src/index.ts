@@ -221,11 +221,11 @@ const shallowEqual = (array1: unknown[], array2: unknown[]) => (
 	|| ((array1.length === array2.length) && array1.every((keyComponent, i) => keyComponent === array2[i]))
 );
 
-type MandatoryArgBase<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg> = (
+type MandatoryArgBase<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg> = Simplify<
 	[CompatibleArgFor<Inputs>, Arg] extends [object, object]
 		?	Pick<CompatibleArgFor<Inputs>, (keyof Arg) & (keyof CompatibleArgFor<Inputs>)>
 		:	CompatibleArgFor<Inputs>
-);
+>;
 
 type Simplify<T> = T extends object ? { [K in keyof T]: T[K] } : T;
 
@@ -240,7 +240,11 @@ type Simplify<T> = T extends object ? { [K in keyof T]: T[K] } : T;
 // In this case TS cannot infer `Out` so we default it to `never`, which results in a return type
 // of `Contextor<never, never>`, which will be flagged as an error if it is used elsewhere.
 //
-export function createContextor<Inputs extends Tuple<ArglessContextorInput>, Arg, Out=never>(
+export function createContextor<
+	Inputs extends Tuple<ArglessContextorInput>,
+	Arg extends MandatoryArgBase<Inputs, Arg>,
+	Out=never
+>(
 	inputs:		Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg | undefined) => Out
 ): (
