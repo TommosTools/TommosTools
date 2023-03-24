@@ -282,7 +282,7 @@ export function createContextor<
 >(
 	inputs:		[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
-): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false> & { mand: MandatoryArgBase<Inputs, Arg> };
+): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
 
 //
 // Catch-all: if arguments for the combiner and any inputs are incompatible then
