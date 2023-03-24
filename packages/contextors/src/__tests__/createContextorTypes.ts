@@ -421,6 +421,59 @@ test("Combining simple arg and structured arg should fail", () =>
 	}
 );
 
+test("Nested args", () =>
+	{
+		const Input1 = createContextor(
+			[Context1],
+			([context1], arg: { nested: { stringArg: string, extra: { deep: number } | number } }) =>
+				`(${expectNumber(context1.contextValue)}, ${expectString(arg.nested.stringArg)})`
+		);
+
+		expect(renderHook(() =>
+			useContextor(Input1({ nested: { stringArg: "hello", extra: 7 } }))
+		).result.current).toBe("(42, hello)");
+
+		const Extended = createContextor(
+			[Input1],
+			([input1], arg: { nested: { numericArg: number, extra: { deep: number } | number } }) =>
+				{
+					const { extra } = arg.nested;
+					const num = expectNumber(extra instanceof Object ? extra.deep : extra);
+
+					return `(${expectString(input1)}, ${expectNumber(arg.nested.numericArg)}, ${num})`;
+				}
+		);
+
+		expect(renderHook(() =>
+			useContextor(Extended({ nested: { stringArg: "howdy", numericArg: 9, extra: 7 } }))
+		).result.current).toBe("((42, howdy), 9, 7)");
+
+		const Input2 = createContextor(
+			[Context1],
+			([context1], arg: { nested: { numericArg: number } }) =>
+				`(${context1.contextValue}, ${expectNumber(arg.nested.numericArg)})`
+		);
+
+		expect(renderHook(() =>
+			useContextor(Input2({ nested: { numericArg: 99 } }))
+		).result.current).toBe("(42, 99)");
+
+		const Combined = createContextor(
+			[Input1, Input2],
+			([input1, input2], arg) =>
+				{
+					const { extra } = arg.nested;
+					const num = expectNumber(extra instanceof Object ? extra.deep : extra);
+
+					return `(${expectString(input1)}, ${expectString(input2)}, ${num})`;
+				}
+		)
+
+		expect(renderHook(() =>
+			useContextor(Combined({ nested: { stringArg: "ahoy", numericArg: 123, extra: { deep: 37 } } }))
+		).result.current).toBe("((42, ahoy), (42, 123), 37)");
+	});
+
 test("Can't supply a raw context to useContextor", () =>
 	{
 		expect(() => renderHook(() =>

@@ -221,11 +221,15 @@ const shallowEqual = (array1: unknown[], array2: unknown[]) => (
 	|| ((array1.length === array2.length) && array1.every((keyComponent, i) => keyComponent === array2[i]))
 );
 
-type MandatoryArgBase<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg> = Simplify<
-	[CompatibleArgFor<Inputs>, Arg] extends [object, object]
-		?	Pick<CompatibleArgFor<Inputs>, (keyof Arg) & (keyof CompatibleArgFor<Inputs>)>
-		:	CompatibleArgFor<Inputs>
->;
+type ObjectExtract<T, U> = (
+	[T, U] extends [object, object]
+		?	Simplify<{ [K in (keyof T & keyof U)]: ObjectExtract<T[K], U[K]> }>
+		:	T
+);
+
+// Can't use vanilla Extract here because Arg introduces a circular constraint
+type MandatoryArgBase<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg> =
+	ObjectExtract<CompatibleArgFor<Inputs>, Arg>;
 
 type Simplify<T> = T extends object ? { [K in keyof T]: T[K] } : T;
 
@@ -278,7 +282,7 @@ export function createContextor<
 >(
 	inputs:		[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
-): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
+): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false> & { mand: MandatoryArgBase<Inputs, Arg> };
 
 //
 // Catch-all: if arguments for the combiner and any inputs are incompatible then
