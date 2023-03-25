@@ -14,7 +14,7 @@ import {
 	useRef,
 } from "react";
 
-type Contextor<Arg, Out, ArgIsOptional extends boolean = boolean> = (
+export type Contextor<Arg, Out, ArgIsOptional extends boolean = boolean> = (
 	(true extends ArgIsOptional
 		?	((arg?: Arg | undefined) => BoundContextor<Arg, Out>) & { __optional: void }
 		:	never)
@@ -32,17 +32,17 @@ function isBoundContextor<Arg, Out>(contextor: Contextor<Arg, Out> | BoundContex
 	return contextor instanceof Array;
 }
 
-type ArglessContextorInput = (
-	| Context<unknown>
-	| Contextor<any, unknown, true>
+export type ArglessContextorInput<Out=unknown> = (
+	| Context<Out>
+	| Contextor<any, Out, true>
 )
 
-type ContextorInput<Arg, Out> = (
+export type ContextorInput<Arg, Out> = (
 	| Context<Out>
 	| Contextor<Arg, Out>
 );
 
-type UseContextorInput<Arg, Out> = (
+export type UseContextorInput<Arg, Out> = (
 	| Contextor<Arg, Out, true>
 	| BoundContextor<Arg, Out>
 )
@@ -64,7 +64,8 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 
 	constructor(
 		readonly inputs:	Inputs,
-		readonly combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
+		readonly combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
+		readonly isEqual?:	ArrayIsEqual<OutputsFor<Inputs>>
 	)
 	{
 		this.contexts = new Set();
@@ -105,7 +106,7 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 						(newValue: Out) =>
 						{
 							inputValues[i] = newValue;
-							onChange(this.cachedCombiner(inputValues, arg!));
+							onChange(this.computeWithCache(inputValues, arg!));
 						}
 					);
 
@@ -124,17 +125,40 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 			) as unknown as OutputsFor<Inputs>
 		);
 
-		const initialValue = this.cachedCombiner(inputValues, arg!);
+		const initialValue = this.computeWithCache(inputValues, arg!);
 
 		return [initialValue, unsubscribeAll];
 	}
 
-	private cache: NestedCache<Out> = new WeakMap();
+	private computeWithCache(inputValues: OutputsFor<Inputs>, arg: Arg): Out
+	{
+		return (
+			this.isEqual
+				?	this.computeWithMemoiseCache(inputValues, arg)
+				:	this.computeWithMultiCache(inputValues, arg)
+		);
+	}
+
+	private singleCache?: { inputValues: OutputsFor<Inputs>, arg: Arg, out: Out };
+
+	private computeWithMemoiseCache(inputValues: OutputsFor<Inputs>, arg: Arg): Out
+	{
+		if (this.singleCache && arg === this.singleCache.arg && this.isEqual!(inputValues, this.singleCache.inputValues))
+			return this.singleCache.out;
+
+		const out = this.combiner(inputValues, arg);
+
+		this.singleCache = { inputValues, arg, out };
+
+		return out;
+	}
+
+	private multiCache: NestedCache<Out> = new WeakMap();
 
 	// Arbitrary object scoped to the Contextor that can be used to index a WeakMap
 	private TerminalCacheKey = {};
 
-	private cachedCombiner(inputValues: OutputsFor<Inputs>, arg: Arg): Out
+	private computeWithMultiCache(inputValues: OutputsFor<Inputs>, arg: Arg): Out
 	{
 		//
 		// Caching of combined values using nested WeakMaps.
@@ -163,7 +187,7 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 		// subscribe to.
 		//
 
-		let cacheRef = this.cache;
+		let cacheRef = this.multiCache;
 
 		const inputValuesWithArg = [...inputValues, arg];
 
@@ -216,6 +240,8 @@ function isObject(value: unknown): value is object
 	return value instanceof Object;
 }
 
+type ArrayIsEqual<T extends unknown[]> = (value: T, other: T) => boolean
+
 const shallowEqual = (array1: unknown[], array2: unknown[]) => (
 	(array1 === array2)
 	|| ((array1.length === array2.length) && array1.every((keyComponent, i) => keyComponent === array2[i]))
@@ -250,7 +276,8 @@ export function createContextor<
 	Out=never
 >(
 	inputs:		Inputs,
-	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg | undefined) => Out
+	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg | undefined) => Out,
+	isEqual?:	ArrayIsEqual<OutputsFor<Inputs>>
 ): (
 	[Out] extends [never]
 		?	Contextor<never, never>
@@ -266,7 +293,8 @@ export function createContextor<
 	Out
 >(
 	inputs:		Inputs,
-	combiner:	(inputs: OutputsFor<Inputs>, arg?: never) => Out
+	combiner:	(inputs: OutputsFor<Inputs>, arg?: never) => Out,
+	isEqual?:	ArrayIsEqual<OutputsFor<Inputs>>
 ): Contextor<unknown, Out, true>;
 
 //
@@ -281,7 +309,8 @@ export function createContextor<
 	Out
 >(
 	inputs:		[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
-	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
+	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
+	isEqual?:	ArrayIsEqual<OutputsFor<Inputs>>
 ): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
 
 //
@@ -294,15 +323,17 @@ export function createContextor<
 	Out
 >(
 	inputs:		[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
-	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
+	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
+	isEqual?:	ArrayIsEqual<OutputsFor<Inputs>>
 ): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
 
 export function createContextor<Inputs extends Tuple<ContextorInput<Arg, any>>, Arg, Out>(
 	inputs:		Inputs,
-	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out
+	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
+	isEqual?:	ArrayIsEqual<OutputsFor<Inputs>>
 )
 {
-	const raw = new RawContextor(inputs, combiner);
+	const raw = new RawContextor(inputs, combiner, isEqual);
 
 	const contextor = (arg: Arg) => raw.withArg(arg);
 	contextor.raw = raw;
