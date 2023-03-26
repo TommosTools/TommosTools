@@ -221,6 +221,24 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 	}
 }
 
+type MemoStackItem = { inputValues: unknown[], arg: unknown, out: unknown }
+
+class MemoStack
+{
+	private stack: MemoStackItem[] = [];
+
+	*cacheGenerator(): Generator<MemoStackItem>
+	{
+		for (let i = 0;; ++i)
+		{
+			if (i > this.stack.length)
+				this.stack.push({ inputValues: undefined!, arg: undefined, out: undefined })
+
+			yield this.stack[i];
+		}
+	}
+}
+
 export function isContextor<Arg, Out>(value: unknown)
 	: value is Contextor<Arg, Out> | BoundContextor<Arg, Out>
 {
@@ -369,7 +387,8 @@ function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>):
 //
 export function useContextor<Arg, Out>(contextor: UseContextorInput<Arg, Out>): Out
 {
-	const subscriber = useSubscriber();
+	const subscriber	= useSubscriber();
+	const memoStack		= new MemoStack();
 
 	//
 	// `subscribe` creates a closure around `dispatch`, which is defined later;
