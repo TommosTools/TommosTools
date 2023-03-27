@@ -55,8 +55,6 @@ type OutputsFor<Inputs extends Tuple<ContextorInput<any, unknown>>> = Inputs ext
 	)
 } : never;
 
-type OptionalIfUndefined<Arg> = Arg extends undefined ? [arg?: Arg] : [arg: Arg];
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 {
@@ -89,9 +87,7 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 		return [this, arg];
 	}
 
-	subscribe(subscriber: Subscriber, onChange: Listener<Out>, arg: Arg): [Out, Unsubscriber];
-	subscribe(subscriber: Subscriber, onChange: Listener<Out>, ...args: OptionalIfUndefined<Arg>): [Out, Unsubscriber];
-	subscribe(subscriber: Subscriber, onChange: Listener<Out>, arg?: Arg): [Out, Unsubscriber]
+	subscribe(subscriber: Subscriber, onChange: Listener<Out>, arg: Arg, opts?: { memoIter: MemoIter }): [Out, Unsubscriber]
 	{
 		const { inputs } = this;
 
@@ -106,7 +102,7 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 						(newValue: Out) =>
 						{
 							inputValues[i] = newValue;
-							onChange(this.computeWithCache(inputValues, arg!));
+							onChange(this.computeWithCache(inputValues, arg, opts?.memoIter));
 						}
 					);
 
@@ -114,8 +110,8 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 						isContext(input)
 							?	subscriber(input, updateValue)
 							:	isBoundContextor(input)
-									?	input[0].subscribe(subscriber, updateValue, arg!)
-									:	input.raw.subscribe(subscriber, updateValue, arg!)
+									?	input[0].subscribe(subscriber, updateValue, arg, opts)
+									:	input.raw.subscribe(subscriber, updateValue, arg, opts)
 					);
 
 					unsubscribers.push(unsubscribe);
@@ -125,30 +121,35 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 			) as unknown as OutputsFor<Inputs>
 		);
 
-		const initialValue = this.computeWithCache(inputValues, arg!);
+		const initialValue = this.computeWithCache(inputValues, arg, opts?.memoIter);
 
 		return [initialValue, unsubscribeAll];
 	}
 
-	private computeWithCache(inputValues: OutputsFor<Inputs>, arg: Arg): Out
+	private computeWithCache(inputValues: OutputsFor<Inputs>, arg: Arg, memoIter?: MemoIter): Out
 	{
 		return (
 			this.isEqual
-				?	this.computeWithMemoiseCache(inputValues, arg)
+				?	this.computeWithMemoiseCache(inputValues, arg, memoIter)
 				:	this.computeWithMultiCache(inputValues, arg)
 		);
 	}
 
-	private singleCache?: { inputValues: OutputsFor<Inputs>, arg: Arg, out: Out };
-
-	private computeWithMemoiseCache(inputValues: OutputsFor<Inputs>, arg: Arg): Out
+	private computeWithMemoiseCache(inputValues: OutputsFor<Inputs>, arg: Arg, memoIter?: MemoIter): Out
 	{
-		if (this.singleCache && arg === this.singleCache.arg && this.isEqual!(inputValues, this.singleCache.inputValues))
-			return this.singleCache.out;
+		const memoCache = memoIter?.next();
+
+		if (memoCache && arg === memoCache.arg && this.isEqual!(inputValues, memoCache.inputValues as OutputsFor<Inputs>))
+			return memoCache.out as Out;
 
 		const out = this.combiner(inputValues, arg);
 
-		this.singleCache = { inputValues, arg, out };
+		if (memoCache)
+		{
+			memoCache.inputValues	= inputValues;
+			memoCache.arg			= arg;
+			memoCache.out			= out;
+		}
 
 		return out;
 	}
@@ -221,21 +222,28 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 	}
 }
 
-type MemoStackItem = { inputValues: unknown[], arg: unknown, out: unknown }
+type MemoItem = { inputValues: unknown[], arg: unknown, out: unknown };
+type MemoIter = { next(): MemoItem };
 
 class MemoStack
 {
-	private stack: MemoStackItem[] = [];
+	private stack: MemoItem[] = [];
 
-	*cacheGenerator(): Generator<MemoStackItem>
+	get iterator(): MemoIter
 	{
-		for (let i = 0;; ++i)
-		{
-			if (i > this.stack.length)
-				this.stack.push({ inputValues: undefined!, arg: undefined, out: undefined })
+		let	i = 0;
 
-			yield this.stack[i];
-		}
+		const stack = this.stack;
+
+		return {
+			next(): MemoItem
+			{
+				if (i >= stack.length)
+					stack.push({ inputValues: undefined!, arg: undefined, out: undefined });
+
+				return stack[i++];
+			}
+		};
 	}
 }
 
@@ -408,7 +416,8 @@ export function useContextor<Arg, Out>(contextor: UseContextorInput<Arg, Out>): 
 				rawContextor.subscribe(
 					subscriber,
 					(updatedValue: Out) => dispatch({ type: "setValue", value: updatedValue }),
-					arg!	// nb: arg may be undefined here but only if Arg extends undefined
+					arg,	// nb: arg may be undefined here but only if Arg extends undefined
+					{ memoIter: memoStack.iterator }
 				)
 			);
 
