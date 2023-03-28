@@ -87,7 +87,7 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 		return [this, arg];
 	}
 
-	subscribe(subscriber: Subscriber, onChange: Listener<Out>, arg: Arg, opts?: { memoIter: MemoIter }): [Out, Unsubscriber]
+	subscribe(subscriber: Subscriber, onChange: Listener<Out>, arg: Arg, opts?: { memoSlots: MemoSlotIterator }): [Out, Unsubscriber]
 	{
 		const { inputs } = this;
 
@@ -102,7 +102,7 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 						(newValue: Out) =>
 						{
 							inputValues[i] = newValue;
-							onChange(this.computeWithCache(inputValues, arg, opts?.memoIter));
+							onChange(this.computeWithCache(inputValues, arg, opts?.memoSlots));
 						}
 					);
 
@@ -121,34 +121,34 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 			) as unknown as OutputsFor<Inputs>
 		);
 
-		const initialValue = this.computeWithCache(inputValues, arg, opts?.memoIter);
+		const initialValue = this.computeWithCache(inputValues, arg, opts?.memoSlots);
 
 		return [initialValue, unsubscribeAll];
 	}
 
-	private computeWithCache(inputValues: OutputsFor<Inputs>, arg: Arg, memoIter?: MemoIter): Out
+	private computeWithCache(inputValues: OutputsFor<Inputs>, arg: Arg, memoSlots?: MemoSlotIterator): Out
 	{
 		return (
 			this.isEqual
-				?	this.computeWithMemoiseCache(inputValues, arg, memoIter)
+				?	this.computeWithMemoiseCache(inputValues, arg, memoSlots)
 				:	this.computeWithMultiCache(inputValues, arg)
 		);
 	}
 
-	private computeWithMemoiseCache(inputValues: OutputsFor<Inputs>, arg: Arg, memoIter?: MemoIter): Out
+	private computeWithMemoiseCache(inputValues: OutputsFor<Inputs>, arg: Arg, memoSlots?: MemoSlotIterator): Out
 	{
-		const memoCache = memoIter?.next();
+		const memoSlot = memoSlots?.next();
 
-		if (memoCache && arg === memoCache.arg && this.isEqual!(inputValues, memoCache.inputValues as OutputsFor<Inputs>))
-			return memoCache.out as Out;
+		if (memoSlot && arg === memoSlot.arg && this.isEqual!(inputValues, memoSlot.inputValues as OutputsFor<Inputs>))
+			return memoSlot.out as Out;
 
 		const out = this.combiner(inputValues, arg);
 
-		if (memoCache)
+		if (memoSlot)
 		{
-			memoCache.inputValues	= inputValues;
-			memoCache.arg			= arg;
-			memoCache.out			= out;
+			memoSlot.inputValues	= inputValues;
+			memoSlot.arg			= arg;
+			memoSlot.out			= out;
 		}
 
 		return out;
@@ -222,26 +222,26 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 	}
 }
 
-type MemoItem = { inputValues: unknown[], arg: unknown, out: unknown };
-type MemoIter = { next(): MemoItem };
+type MemoSlot			= { inputValues: unknown[], arg: unknown, out: unknown };
+type MemoSlotIterator	= { next(): MemoSlot };
 
-class MemoStack
+class MemoSlotProvider
 {
-	private stack: MemoItem[] = [];
+	private slots: MemoSlot[] = [];
 
-	get iterator(): MemoIter
+	iterator(): MemoSlotIterator
 	{
 		let	i = 0;
 
-		const stack = this.stack;
+		const slots = this.slots;
 
 		return {
-			next(): MemoItem
+			next(): MemoSlot
 			{
-				if (i >= stack.length)
-					stack.push({ inputValues: undefined!, arg: undefined, out: undefined });
+				if (i >= slots.length)
+					slots.push({ inputValues: undefined!, arg: undefined, out: undefined });
 
-				return stack[i++];
+				return slots[i++];
 			}
 		};
 	}
@@ -396,7 +396,7 @@ function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>):
 export function useContextor<Arg, Out>(contextor: UseContextorInput<Arg, Out>): Out
 {
 	const subscriber	= useSubscriber();
-	const memoStack		= new MemoStack();
+	const memoProvider	= new MemoSlotProvider();
 
 	//
 	// `subscribe` creates a closure around `dispatch`, which is defined later;
@@ -417,7 +417,7 @@ export function useContextor<Arg, Out>(contextor: UseContextorInput<Arg, Out>): 
 					subscriber,
 					(updatedValue: Out) => dispatch({ type: "setValue", value: updatedValue }),
 					arg,	// nb: arg may be undefined here but only if Arg extends undefined
-					{ memoIter: memoStack.iterator }
+					{ memoSlots: memoProvider.iterator() }
 				)
 			);
 
