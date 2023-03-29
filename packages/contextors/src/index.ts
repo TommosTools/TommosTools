@@ -63,7 +63,7 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 	constructor(
 		readonly inputs:	Inputs,
 		readonly combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
-		readonly isEqual?:	ArrayIsEqual<OutputsFor<Inputs>>
+		readonly isEqual?:	CombinerParamsAreEqual<OutputsFor<Inputs>, Arg>
 	)
 	{
 		this.contexts = new Set();
@@ -139,7 +139,7 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 	{
 		const memoSlot = memoSlots?.next();
 
-		if (memoSlot && arg === memoSlot.arg && this.isEqual!(inputValues, memoSlot.inputValues as OutputsFor<Inputs>))
+		if (memoSlot && this.isEqual!([inputValues, arg], [memoSlot.inputValues, memoSlot.arg] as [OutputsFor<Inputs>, Arg]))
 			return memoSlot.out as Out;
 
 		const out = this.combiner(inputValues, arg);
@@ -266,7 +266,8 @@ function isObject(value: unknown): value is object
 	return value instanceof Object;
 }
 
-type ArrayIsEqual<T extends unknown[]> = (value: T, other: T) => boolean
+type CombinerParamsAreEqual<T extends unknown[], Arg extends unknown> =
+	(params: [T, Arg], otherParams: [T, Arg]) => boolean
 
 const shallowEqual = (array1: unknown[], array2: unknown[]) => (
 	(array1 === array2)
@@ -303,7 +304,7 @@ export function createContextor<
 >(
 	inputs:		Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg | undefined) => Out,
-	isEqual?:	ArrayIsEqual<OutputsFor<Inputs>>
+	isEqual?:	CombinerParamsAreEqual<OutputsFor<Inputs>, Arg>
 ): (
 	[Out] extends [never]
 		?	Contextor<never, never>
@@ -320,7 +321,7 @@ export function createContextor<
 >(
 	inputs:		Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg?: never) => Out,
-	isEqual?:	ArrayIsEqual<OutputsFor<Inputs>>
+	isEqual?:	CombinerParamsAreEqual<OutputsFor<Inputs>, unknown>
 ): Contextor<unknown, Out, true>;
 
 //
@@ -336,7 +337,7 @@ export function createContextor<
 >(
 	inputs:		[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
-	isEqual?:	ArrayIsEqual<OutputsFor<Inputs>>
+	isEqual?:	CombinerParamsAreEqual<OutputsFor<Inputs>, Arg>
 ): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
 
 //
@@ -350,13 +351,13 @@ export function createContextor<
 >(
 	inputs:		[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
-	isEqual?:	ArrayIsEqual<OutputsFor<Inputs>>
+	isEqual?:	CombinerParamsAreEqual<OutputsFor<Inputs>, Arg>
 ): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
 
 export function createContextor<Inputs extends Tuple<ContextorInput<Arg, any>>, Arg, Out>(
 	inputs:		Inputs,
 	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
-	isEqual?:	ArrayIsEqual<OutputsFor<Inputs>>
+	isEqual?:	CombinerParamsAreEqual<OutputsFor<Inputs>, Arg>
 )
 {
 	const raw = new RawContextor(inputs, combiner, isEqual);
