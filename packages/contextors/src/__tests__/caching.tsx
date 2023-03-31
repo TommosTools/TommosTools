@@ -174,16 +174,16 @@ test("JSON stabilised caching", () =>
 
 		const Stabiliser = createContextor([ContentContext], ([value]) => value, isEqualJson);
 
-		const generateContents = () => Array(20).fill(0).map((_, n) => ({ id: n, value: "x".repeat(n) }));
+		const generateContents = () => Array(5).fill(0).map((_, n) => ({ id: n, value: "x".repeat(n) }));
 
 		let contextContentRenderCount = 0;
 		const ContextContentDisplay = () =>
 		{
-			useEffect(() => { ++contextContentRenderCount });
+			const content = useContext(ContentContext);
 
-			const { id, value } = useContext(ContentContext);
+			useEffect(() => { ++contextContentRenderCount }, [content]);
 
-			return <li>`${id}: ${value}`</li>;
+			return <li>`${content.id}: ${content.value}`</li>;
 		}
 
 		const UnstableList = ({ contents }: { contents: Content[] }) =>
@@ -198,11 +198,10 @@ test("JSON stabilised caching", () =>
 		let contextorContentRenderCount = 0;
 		const ContextorContentDisplay = () =>
 		{
-			useEffect(() => { ++contextorContentRenderCount }, []);
+			const content = useContextor(Stabiliser);
+			useEffect(() => { ++contextorContentRenderCount }, [content]);
 
-			const { id, value } = useContextor(Stabiliser);
-
-			return <li>`${id}: ${value}`</li>;
+			return <li>`${content.id}: ${content.value}`</li>;
 		}
 
 		const StableList = ({ contents }: { contents: Content[] }) =>

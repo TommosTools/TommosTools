@@ -12,6 +12,7 @@ import {
 	useEffect,
 	useReducer,
 	useRef,
+	useState,
 } from "react";
 
 export type Contextor<Arg, Out, ArgIsOptional extends boolean = boolean> = (
@@ -87,12 +88,14 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 		return [this, arg];
 	}
 
-	subscribe(subscriber: Subscriber, onChange: Listener<Out>, arg: Arg, opts?: { memoSlots: MemoSlotIterator }): [Out, Unsubscriber]
+	subscribe(subscriber: Subscriber, onChange: Listener<Out>, arg: Arg, opts?: { memoProvider: MemoSlotProvider }): [Out, Unsubscriber]
 	{
 		const { inputs } = this;
 
 		const unsubscribers: Unsubscriber[] = [];
 		const unsubscribeAll = () => unsubscribers.forEach((unsubscribe) => unsubscribe());
+
+		const memoSlots = opts?.memoProvider.iterator();
 
 		const inputValues = (
 			inputs.map(
@@ -102,7 +105,7 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 						(newValue: Out) =>
 						{
 							inputValues[i] = newValue;
-							onChange(this.computeWithCache(inputValues, arg, opts?.memoSlots));
+							onChange(this.computeWithCache(inputValues, arg, memoSlots));
 						}
 					);
 
@@ -121,7 +124,7 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 			) as unknown as OutputsFor<Inputs>
 		);
 
-		const initialValue = this.computeWithCache(inputValues, arg, opts?.memoSlots);
+		const initialValue = this.computeWithCache(inputValues, arg, memoSlots);
 
 		return [initialValue, unsubscribeAll];
 	}
@@ -138,9 +141,13 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 	private computeWithMemoiseCache(inputValues: OutputsFor<Inputs>, arg: Arg, memoSlots?: MemoSlotIterator): Out
 	{
 		const memoSlot = memoSlots?.next();
+		console.log("mmmm", memoSlot);
 
 		if (memoSlot && this.isEqual!([inputValues, arg], [memoSlot.inputValues, memoSlot.arg] as [OutputsFor<Inputs>, Arg]))
+		{
+			console.log("using memoised value", memoSlot.out);
 			return memoSlot.out as Out;
+		}
 
 		const out = this.combiner(inputValues, arg);
 
@@ -241,6 +248,7 @@ class MemoSlotProvider
 				if (i >= slots.length)
 					slots.push({ inputValues: undefined!, arg: undefined, out: undefined });
 
+					console.log("returning slot", i);
 				return slots[i++];
 			}
 		};
@@ -396,8 +404,9 @@ function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>):
 //
 export function useContextor<Arg, Out>(contextor: UseContextorInput<Arg, Out>): Out
 {
-	const subscriber	= useSubscriber();
-	const memoProvider	= new MemoSlotProvider();
+	console.log("USE CONTEXTOR");
+	const subscriber		= useSubscriber();
+	const [memoProvider]	= useState(() => new MemoSlotProvider());
 
 	//
 	// `subscribe` creates a closure around `dispatch`, which is defined later;
@@ -418,7 +427,7 @@ export function useContextor<Arg, Out>(contextor: UseContextorInput<Arg, Out>): 
 					subscriber,
 					(updatedValue: Out) => dispatch({ type: "setValue", value: updatedValue }),
 					arg,	// nb: arg may be undefined here but only if Arg extends undefined
-					{ memoSlots: memoProvider.iterator() }
+					{ memoProvider }
 				)
 			);
 
