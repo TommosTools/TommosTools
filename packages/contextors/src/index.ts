@@ -95,8 +95,6 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 		const unsubscribers: Unsubscriber[] = [];
 		const unsubscribeAll = () => unsubscribers.forEach((unsubscribe) => unsubscribe());
 
-		const memoSlots = opts?.memoProvider.iterator();
-
 		const inputValues = (
 			inputs.map(
 				<Out>(input: ContextorInput<Arg, Out>, i: number) =>
@@ -105,7 +103,7 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 						(newValue: Out) =>
 						{
 							inputValues[i] = newValue;
-							onChange(this.computeWithCache(inputValues, arg, memoSlots));
+							onChange(this.computeWithCache(inputValues, arg, opts?.memoProvider.iterator()));
 						}
 					);
 
@@ -124,7 +122,7 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 			) as unknown as OutputsFor<Inputs>
 		);
 
-		const initialValue = this.computeWithCache(inputValues, arg, memoSlots);
+		const initialValue = this.computeWithCache(inputValues, arg, opts?.memoProvider.iterator());
 
 		return [initialValue, unsubscribeAll];
 	}
@@ -141,9 +139,8 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 	private computeWithMemoiseCache(inputValues: OutputsFor<Inputs>, arg: Arg, memoSlots?: MemoSlotIterator): Out
 	{
 		const memoSlot = memoSlots?.next();
-		console.log("mmmm", memoSlot);
 
-		if (memoSlot && this.isEqual!([inputValues, arg], [memoSlot.inputValues, memoSlot.arg] as [OutputsFor<Inputs>, Arg]))
+		if (memoSlot?.inputValues && this.isEqual!([inputValues, arg], [memoSlot.inputValues, memoSlot.arg] as [OutputsFor<Inputs>, Arg]))
 		{
 			console.log("using memoised value", memoSlot.out);
 			return memoSlot.out as Out;
@@ -248,7 +245,6 @@ class MemoSlotProvider
 				if (i >= slots.length)
 					slots.push({ inputValues: undefined!, arg: undefined, out: undefined });
 
-					console.log("returning slot", i);
 				return slots[i++];
 			}
 		};
@@ -404,7 +400,6 @@ function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>):
 //
 export function useContextor<Arg, Out>(contextor: UseContextorInput<Arg, Out>): Out
 {
-	console.log("USE CONTEXTOR");
 	const subscriber		= useSubscriber();
 	const [memoProvider]	= useState(() => new MemoSlotProvider());
 
@@ -441,13 +436,15 @@ export function useContextor<Arg, Out>(contextor: UseContextorInput<Arg, Out>): 
 		subscribe
 	);
 
+	const [rawContextor, arg] = isBoundContextor(contextor) ? contextor : [contextor, undefined];
+
 	useEffectOnUpdate(
 		() =>
 		{
 			dispatch({ type: "setContextor", contextor });
 			return () => dispatch({ type: "unsetContextor" });
 		},
-		[dispatch, contextor]
+		[dispatch, rawContextor, arg]
 	);
 
 	return currentValue;

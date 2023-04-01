@@ -2,12 +2,12 @@
  * @jest-environment jsdom
  */
 
-import { render, screen } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import "@testing-library/jest-dom";
-import { ReactNode, useEffect, useState, useRef } from "react";
+import { useEffect, useState, useMemo, memo } from "react";
 import { act } from "react-dom/test-utils";
-import { ContextType, createContext, INHERIT, useContext, useContextUpdate, ValueUpdater } from "contexto";
-import { ArglessContextorInput, createContextor, useContextor } from "..";
+import { createContext, INHERIT, useContext, useContextUpdate, ValueUpdater } from "contexto";
+import { createContextor, useContextor } from "..";
 
 test("simple caching", async () =>
 	{
@@ -213,12 +213,12 @@ test("JSON stabilised caching", () =>
 				) }
 			</ul>;
 
-		let handleClick: () => void;
+		let regenerate: () => void;
 		const Lists = () =>
 		{
 			const [contents, setContents] = useState(generateContents);
 
-			handleClick = () => setContents(generateContents());
+			regenerate = () => setContents(generateContents());
 
 			return <>
 				<UnstableList contents={contents} />
@@ -230,7 +230,65 @@ test("JSON stabilised caching", () =>
 
 		console.log(`unstable: ${contextContentRenderCount}  stable: ${contextorContentRenderCount}`);
 
-		act(() => handleClick());
+		act(() => regenerate());
 
 		console.log(`unstable: ${contextContentRenderCount}  stable: ${contextorContentRenderCount}`);
-	})
+	});
+
+test("Nested contextors using isEqual", () =>
+	{
+		const ContextA = createContext({ a: 0 }, { contextId: "test1" });
+		const ContextB = createContext({ b: 0 }, { contextId: "test2" });
+
+		const isEqualBasedOnArg1 = ([[], [arg1, arg2]]: [unknown[], [boolean,boolean]]) => arg1;
+		const isEqualBasedOnArg2 = ([[], [arg1, arg2]]: [unknown[], [boolean,boolean]]) => arg2;
+
+		const Contextor1 = createContextor([ContextA], ([context]) => ({ ...context }), isEqualBasedOnArg1);
+		const Contextor2 = createContextor([ContextB], ([context]) => ({ ...context }), isEqualBasedOnArg2);
+		const Contextor3 = createContextor(
+			[Contextor1, Contextor2],
+			([contextor1, contextor2], arg: [boolean,boolean]) => ({ ...contextor1, ...contextor2 }));
+
+		const renderCounts: Record<string, number> = {};
+
+		const Consumer = memo(({ id, equal1, equal2 }: { id: string, equal1: boolean, equal2: boolean }) =>
+			{
+				const equal = useMemo(() => [equal1, equal2], [equal1, equal2]) as [boolean,boolean];
+				const value = useContextor(Contextor3(equal));
+
+				useEffect(() => { renderCounts[id] = (renderCounts[id] ?? 0) + 1 }, [value]);
+
+				return <>{ JSON.stringify(value) }</>
+			});
+
+		let regenerate: () => void;
+		
+		const Consumers = () =>
+			{
+				const [salt, setSalt] = useState(1);
+				
+				regenerate = () => setSalt(salt => salt + 1);
+
+				const valueA = useMemo(() => ({ a: salt }), [salt]);
+				const valueB = useMemo(() => ({ b: salt }), [salt]);
+
+				return (
+					<ContextA.Provider value={valueA}>
+						<ContextB.Provider value={valueB}>
+							<Consumer id="00" equal1={false} equal2={false} />
+							<Consumer id="01" equal1={false} equal2={true} />
+							<Consumer id="10" equal1={true} equal2={false} />
+							<Consumer id="11" equal1={true} equal2={true} />
+						</ContextB.Provider>
+					</ContextA.Provider>
+				);
+			}
+
+		render(<Consumers/>);
+
+		console.log("render1:", renderCounts);
+
+		act(() => regenerate());
+
+		console.log("render2:", renderCounts);
+	});
