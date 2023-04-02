@@ -228,11 +228,13 @@ test("JSON stabilised caching", () =>
 
 		render(<Lists/>);
 
-		console.log(`unstable: ${contextContentRenderCount}  stable: ${contextorContentRenderCount}`);
+		expect(contextContentRenderCount).toBe(5);
+		expect(contextorContentRenderCount).toBe(5);
 
 		act(() => regenerate());
 
-		console.log(`unstable: ${contextContentRenderCount}  stable: ${contextorContentRenderCount}`);
+		expect(contextContentRenderCount).toBe(10);
+		expect(contextorContentRenderCount).toBe(5);
 	});
 
 test("Nested contextors using isEqual", () =>
@@ -286,9 +288,9 @@ test("Nested contextors using isEqual", () =>
 
 		render(<Consumers/>);
 
-		console.log("render1:", renderCounts);
+		expect(renderCounts).toMatchObject({ '00': 1, '01': 1, '10': 1, '11': 1 });
 
 		act(() => regenerate());
 
-		console.log("render2:", renderCounts);
+		expect(renderCounts).toMatchObject({ '00': 2, '01': 2, '10': 2, '11': 1 });
 	});

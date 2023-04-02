@@ -141,10 +141,7 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 		const memoSlot = memoSlots?.next();
 
 		if (memoSlot?.inputValues && this.isEqual!([inputValues, arg], [memoSlot.inputValues, memoSlot.arg] as [OutputsFor<Inputs>, Arg]))
-		{
-			console.log("using memoised value", memoSlot.out);
 			return memoSlot.out as Out;
-		}
 
 		const out = this.combiner(inputValues, arg);
 
