@@ -10,11 +10,11 @@ import {
 	useContext as useReactContext,
 	useImperativeHandle,
 	useRef,
-	useState
+	useState,
 } from "react";
 import {
 	ContextInstance,
-	InstanceStackContext
+	InstanceStackContext,
 } from "./ContextInstance";
 import {
 	IS_NON_PRODUCTION_ENVIRONMENT,
@@ -47,75 +47,95 @@ const DEFAULT_DISPLAY_NAME = "Contexto";
 export function createContext<T>(defaultValue: T, options?: ContextOptions): SubscriptionContext<T>
 {
 	return createOrRetrieve(options?.contextId, (id: ContextId) =>
-		{
-			const displayName = options?.displayName;
+	{
+		const displayName = options?.displayName;
 
-			const context: any = { displayName };
-			
-			context.Provider		= createProvider(id, undefined, defaultValue);
-			context.Consumer		= createConsumer(context);
-			context[CONTEXTO_KEY]	= { id, defaultValue, type: "Subscription" };
+		// Bit of messiness here so we can close around `context`
+		const internalContext = { displayName } as InternalContext<T>;
 
-			installDisplayNameGetter(context.Provider, context);
+		const Provider = createProvider(id, undefined, defaultValue);
 
-			return context;
+		Object.defineProperties(internalContext, {
+			Provider: { value: Provider },
+			Consumer: { value: createConsumer(internalContext) },
+			[CONTEXTO_KEY]: { value: { id, defaultValue, type: "Subscription" } },
 		});
+
+		installDisplayNameGetter(Provider, internalContext);
+
+		return internalContext as SubscriptionContext<T>;
+	});
 }
 
 export function createCompatibleContext<T>(defaultValue: T, options?: ContextOptions): CompatibleSubscriptionContext<T>
 {
 	return createOrRetrieve(options?.contextId, (id: ContextId) =>
-		{
-			const displayName = options?.displayName;
+	{
+		// Can treat vanilla React context as an internal context during initialisation only
+		const reactContext		= createReactContext(defaultValue);
+		const internalContext	= reactContext as InternalContext<T>;
 
-			const context: any = createReactContext(defaultValue);
-			
-			context.Provider		= createProvider(id, context, defaultValue);
-			context.Consumer		= createConsumer(context);
-			context[CONTEXTO_KEY]	= { id, defaultValue, type: "Subscription" };
+		const Provider = createProvider(id, reactContext, defaultValue);
 
-			installDisplayNameGetter(context.Provider, context);
-
-			return context;
+		Object.defineProperties(internalContext, {
+			Provider: { value: Provider },
+			Consumer: { value: createConsumer(internalContext) },
+			[CONTEXTO_KEY]: { value: { id, defaultValue, type: "Subscription" } },
 		});
+
+		installDisplayNameGetter(Provider, internalContext);
+
+		return internalContext as CompatibleSubscriptionContext<T>;
+	});
 }
 
 export function createProxyContext<T>(context: ReactContext<T>, options?: ProxyContextOptions): ProxyContext<T>
 {
 	return createOrRetrieve(options?.contextId, (id: ContextId) =>
-		{
-			if (IS_NON_PRODUCTION_ENVIRONMENT && CONTEXTO_KEY in context)
-				throw new Error("createProxyContext(..) expects a React.Context, not a contexto.Context");
-			
-			const anyContext	= context as any;
-			const defaultValue	= anyContext._currentValue as T;	// NAUGHTY!  Shouldn't go fossicking around the react internals
-	
-			anyContext.Provider			= createProxyProvider(id, context, defaultValue);
-			anyContext.Consumer			= createConsumer(anyContext);
-			anyContext[CONTEXTO_KEY]	= { id, defaultValue, type: "Proxy" };
+	{
+		if (IS_NON_PRODUCTION_ENVIRONMENT && CONTEXTO_KEY in context)
+			throw new Error("createProxyContext(..) expects a React.Context, not a contexto.Context");
 
-			installDisplayNameGetter(context.Provider, anyContext);
-	
-			return anyContext;
+		// NAUGHTY!  Shouldn't go fossicking around the react internals
+		// eslint-disable-next-line no-underscore-dangle
+		const defaultValue = (context as unknown as { _currentValue: T })._currentValue;
+
+		const internalContext = context as InternalContext<T>;
+
+		const Provider = createProxyProvider(id, context, defaultValue);
+
+		Object.defineProperties(context, {
+			Provider: { value: Provider },
+			Consumer: { value: createConsumer(internalContext) },
+			[CONTEXTO_KEY]: { value: { id, defaultValue, type: "Proxy" } },
 		});
+
+		installDisplayNameGetter(context.Provider, internalContext);
+
+		return internalContext;
+	});
 }
 
 const generateContextId = (() =>
-	{
-		let counter = 0;
-		return (): ContextId => String(++counter);
-	}
-)();
+{
+	let counter = 0;
+	return (): ContextId => String(++counter);	// eslint-disable-line no-plusplus
+})();
 
-const contextCache: { [K: ContextId]: InternalContext<any> } = {};
+const contextCache: { [K: ContextId]: InternalContext<unknown> } = {};
 
-function createOrRetrieve<ContextFactory extends (id: ContextId) => Context<any>>(
+type BaseContextFactory = (id: ContextId) => Context<unknown>;
+
+function createOrRetrieve<ContextFactory extends BaseContextFactory>(
 	contextId:	ContextId | undefined,
 	factory:	ContextFactory
 ): ReturnType<ContextFactory>
 {
 	if (WARN_ABOUT_MISSING_CONTEXT_ID && contextId === undefined)
-		console.warn("No contextId provided to createContext(..) / createCompatibleContext(..) / createProxyContext(..).  React / Fast Refresh compatibility is limited.");
+	{
+		// eslint-disable-next-line no-console
+		console.warn("No contextId provided to context constructor. React / Fast Refresh compatibility is limited.");
+	}
 
 	if (contextId !== undefined && contextCache[contextId])
 		return contextCache[contextId] as ReturnType<ContextFactory>;
@@ -123,26 +143,31 @@ function createOrRetrieve<ContextFactory extends (id: ContextId) => Context<any>
 	const id		= contextId ?? generateContextId();
 	const context	= factory(id);
 
-	contextCache[id] = context as any;
+	contextCache[id] = context as InternalContext<unknown>;
 
 	return context as ReturnType<ContextFactory>;
 }
 
-function installDisplayNameGetter(Provider: ComponentType<any>, context: InternalContext<any>)
+function installDisplayNameGetter(Provider: ComponentType<unknown>, context: InternalContext<unknown>)
 {
 	Object.defineProperty(Provider, "displayName", {
-		get() {
+		get()
+		{
 			return `${context.displayName ?? DEFAULT_DISPLAY_NAME}.${context[CONTEXTO_KEY].type}Provider`;
-		}
+		},
 	});
 }
 
-function createProvider<T, CompatContext extends ReactContext<T> | undefined>(id: ContextId, compatContext: CompatContext, defaultValue: T)
+function createProvider<T, CompatContext extends ReactContext<T> | undefined>(
+	contextId:		ContextId,
+	compatContext:	CompatContext,
+	defaultValue:	T
+)
 {
 	const Provider = compatContext?.Provider;
 
 	return forwardRef<ProviderRef<T>, ProviderProps<T>>(
-		({ children, ...props }, ref) =>
+		(props, ref) =>
 		{
 			if (IS_NON_PRODUCTION_ENVIRONMENT && ("initialValue" in props && "value" in props))
 				throw new Error("Cannot provide both value and initialValue props");
@@ -150,41 +175,44 @@ function createProvider<T, CompatContext extends ReactContext<T> | undefined>(id
 			const disableValueUpdates	= "initialValue" in props;
 			const value					= (disableValueUpdates ? props.initialValue : props.value) as T;
 
-			const [instances, thisInstance] = useContextInstance<T>(id, value, defaultValue);
+			const [instances, thisInstance] = useContextInstance<T>(contextId, value, defaultValue);
 
 			// Update whenever the Provider's `value` prop changes (unless this behaviour has been disabled)
 			useUpdateWhenValueChanges(thisInstance, value, !disableValueUpdates);
 
 			// Expose methods on refs to Provider components.
-			useImperativeHandle(ref,
-				() =>
-				({
+			useImperativeHandle(
+				ref,
+				() => ({
 					update: thisInstance.update,
-					getSnapshot: () => thisInstance.snapshot
+					getSnapshot: () => thisInstance.snapshot,
 				}),
-				[thisInstance]);
-			
-			if (Provider)
-				children = <CompatibilityWrapper provider={Provider} instance={thisInstance} children={children} />;
-			
-			return <InstanceStackContext.Provider value={instances} children={children} />
-		}) as ProviderComponentType<T>;
+				[thisInstance]
+			);
+
+			const children = Provider
+				?	<CompatibilityWrapper provider={Provider} instance={thisInstance} children={props.children} />
+				:	props.children;
+
+			return <InstanceStackContext.Provider value={instances} children={children} />;
+		}
+	) as ProviderComponentType<T>;
 }
 
 function createConsumer<T>(context: Context<T>)
 {
 	return ({ children, isEqual }: ConsumerProps<T>) =>
-		{
-			const value = useContext(context, isEqual);
+	{
+		const value = useContext(context, isEqual);
 
-			return children(value);
-		}
+		return children(value);
+	};
 }
 
 type CompatibilityWrapperProps<T> = PropsWithChildren<{
 	provider: ReactProvider<T>;
 	instance: ContextInstance<T>;
-}>
+}>;
 
 function CompatibilityWrapper<T>({ provider: Provider, instance, children }: CompatibilityWrapperProps<T>)
 {
@@ -195,44 +223,49 @@ function CompatibilityWrapper<T>({ provider: Provider, instance, children }: Com
 		[instance, setValue]
 	);
 
-	return <Provider value={value} children={children} />
+	return <Provider value={value} children={children} />;
 }
 
 function createProxyProvider<T>(id: ContextId, context: ReactContext<T>, defaultValue: T)
 {
 	const { Provider: BaseProvider } = context;
 
+	// eslint-disable-next-line react/function-component-definition
 	return ({ children, value }: PropsWithChildren<{ value: T }>) =>
-		{
-			const [instances, thisInstance]	= useContextInstance(id, value, defaultValue);
+	{
+		const [instances, thisInstance]	= useContextInstance(id, value, defaultValue);
 
-			useUpdateWhenValueChanges(thisInstance, value, true);
+		useUpdateWhenValueChanges(thisInstance, value, true);
 
-			return (
-				<InstanceStackContext.Provider value={instances}>
-					<BaseProvider value={value} children={children} />
-				</InstanceStackContext.Provider>
-			);
-		};
+		return (
+			<InstanceStackContext.Provider value={instances}/* eslint-disable-line react/jsx-indent */>
+				<BaseProvider value={value} children={children} /* eslint-disable-line react/jsx-indent */ />
+			</InstanceStackContext.Provider>
+		);
+	};
 }
 
-function useContextInstance<T>(id: ContextId, initialValueOrInherit: T | typeof INHERIT, defaultValue: T): [ContextInstanceStack, ContextInstance<T>]
+function useContextInstance<T>(
+	contextId:				ContextId,
+	initialValueOrInherit:	T | typeof INHERIT,
+	defaultValue:			T
+): [ContextInstanceStack, ContextInstance<T>]
 {
 	const existingInstances	= useReactContext(InstanceStackContext);
-	const initialValue		= (
-		initialValueOrInherit !== INHERIT
+	const initialValue		= (				// eslint-disable-line @typescript-eslint/no-extra-parens
+		initialValueOrInherit !== INHERIT	// eslint-disable-line no-nested-ternary
 			?	initialValueOrInherit
-			:	(id in existingInstances)
-				?	existingInstances[id].snapshot
+			:	contextId in existingInstances
+				?	existingInstances[contextId].snapshot
 				:	defaultValue
 	);
 
 	const [instances]		= useState<ContextInstanceStack>(() => ({
 		...existingInstances,
-		[id]: new ContextInstance(initialValue)
+		[contextId]: new ContextInstance(initialValue),
 	}));
 
-	return [instances, instances[id] as ContextInstance<T>];
+	return [instances, instances[contextId] as ContextInstance<T>];
 }
 
 function useUpdateWhenValueChanges<T>(instance: ContextInstance<T>, value: T, enabled: boolean)
