@@ -53,7 +53,7 @@ export function createContext<T>(defaultValue: T, options?: ContextOptions): Sub
 		// Bit of messiness here so we can close around `context`
 		const internalContext = { displayName } as InternalContext<T>;
 
-		const Provider = createProvider(id, undefined, defaultValue);
+		const Provider = createProvider(id, undefined, defaultValue) as ComponentType<unknown>;
 
 		Object.defineProperties(internalContext, {
 			Provider: { value: Provider },
@@ -75,7 +75,7 @@ export function createCompatibleContext<T>(defaultValue: T, options?: ContextOpt
 		const reactContext		= createReactContext(defaultValue);
 		const internalContext	= reactContext as InternalContext<T>;
 
-		const Provider = createProvider(id, reactContext, defaultValue);
+		const Provider = createProvider(id, reactContext, defaultValue) as ComponentType<unknown>;
 
 		Object.defineProperties(internalContext, {
 			Provider: { value: Provider },
@@ -102,7 +102,7 @@ export function createProxyContext<T>(context: ReactContext<T>, options?: ProxyC
 
 		const internalContext = context as InternalContext<T>;
 
-		const Provider = createProxyProvider(id, context, defaultValue);
+		const Provider = createProxyProvider(id, context, defaultValue) as ComponentType<unknown>;
 
 		Object.defineProperties(context, {
 			Provider: { value: Provider },
@@ -110,7 +110,7 @@ export function createProxyContext<T>(context: ReactContext<T>, options?: ProxyC
 			[CONTEXTO_KEY]: { value: { id, defaultValue, type: "Proxy" } },
 		});
 
-		installDisplayNameGetter(context.Provider, internalContext);
+		installDisplayNameGetter(Provider, internalContext);
 
 		return internalContext;
 	});

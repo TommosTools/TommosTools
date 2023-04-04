@@ -4,13 +4,15 @@ import { useInternalContexts } from "./hooks";
 import {
 	BridgeProviderProps,
 	Contexto,
-	ContextTuple
+	ContextTuple,
 } from "./types";
 import { getContextIds } from "./types/internal";
 import { pick } from "./utils";
 
-export const BridgeProvider = (props: BridgeProviderProps) =>
-	<InstanceStackContext.Provider {...props} />
+export function BridgeProvider({ value, children }: BridgeProviderProps)
+{
+	return <InstanceStackContext.Provider value={value} children={children} />;
+}
 
 export function useBridgeValue(contexts: ContextTuple): Contexto
 {
@@ -19,7 +21,8 @@ export function useBridgeValue(contexts: ContextTuple): Contexto
 	const allInstances		= React.useContext(InstanceStackContext);
 	const filteredInstances	= React.useMemo(
 		() => pick(allInstances, getContextIds(internalContexts)),
-		[allInstances, internalContexts]);
+		[allInstances, internalContexts]
+	);
 
 	return filteredInstances as Contexto;
 }

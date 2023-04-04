@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-extra-parens */
+
 export const IS_SSR = (
 	typeof window === "undefined"
 	|| (window.navigator.userAgent && /ServerSideRendering/.test(window.navigator.userAgent))

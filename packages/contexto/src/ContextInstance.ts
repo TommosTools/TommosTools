@@ -47,7 +47,7 @@ export class ContextInstance<T>
 	{
 		const { store, listeners } = this;
 
-		const value = (revision instanceof Function)
+		const value = revision instanceof Function
 			?	revision(store)
 			:	revision;
 

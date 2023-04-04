@@ -23,7 +23,7 @@
     "compile:dom": "tsup --env.targetPlatform dom src/index.ts",
     "precompile:native": "cp -f src/platforms/native/* src/targetPlatform",
     "compile:native": "tsup --env.targetPlatform native src/index.ts",
-    "lint": "eslint 'src/**/*.ts'",
+    "lint": "eslint 'src/**/*.{ts,tsx}'",
     "test": "cp src/{platforms/dom,targetPlatform}/batchedUpdates.ts && jest"
   },
   "devDependencies": {

@@ -22,5 +22,5 @@ export {
 
 export {
 	isContext,
-	useSubscriber
+	useSubscriber,
 } from "./api";

@@ -42,16 +42,14 @@ export function useContext<T>(
 	);
 
 	useIsomorphicLayoutEffect(
-		() => (
-			// `subscribe(..)` returns the appropriate unsubscribe / cleanup function
-			instance?.subscribe(
-				(newValue) =>
-				{
-					setValue(
-						(oldValue) => (!isEqual(oldValue[0], newValue, context) ? [newValue] : oldValue)
-					);
-				}
-			)
+		() => instance?.subscribe(	// `subscribe(..)` returns the appropriate unsubscribe / cleanup function
+			(newValue) =>
+			{
+				setValue(
+					// eslint-disable-next-line @typescript-eslint/no-extra-parens
+					(oldValue) => (isEqual(oldValue[0], newValue, context) ? oldValue : [newValue])
+				);
+			}
 		),
 		[instance, context, setValue, isEqual]
 	);
@@ -102,17 +100,15 @@ function constructValues<Contexts extends ContextTuple | ContextDict>(
 	contexts: InternalContextsFor<Contexts>
 )
 {
-	const inputs = (
-		Object.entries(contexts)
-			.map(
-				([key, context]) =>
-				{
-					const { instance }	= contextMap.get(context) ?? {};
-					const value			= instance ? instance.snapshot : context[CONTEXTO_KEY].defaultValue;
-					return { key, value };
-				}
-			)
-	);
+	const inputs = Object.entries(contexts)
+		.map(
+			([key, context]) =>
+			{
+				const { instance }	= contextMap.get(context) ?? {};
+				const value			= instance ? instance.snapshot : context[CONTEXTO_KEY].defaultValue;
+				return { key, value };
+			}
+		);
 
 	return (
 		Array.isArray(contexts)
@@ -188,13 +184,11 @@ export function useContexts<Contexts extends ContextTuple | ContextDict>(
 	useIsomorphicLayoutEffect(
 		() =>
 		{
-			const unsubscribers = (
-				Array.from(
-					contextMap,
-					([context, { keys, instance }]) => (
-						// eslint-disable-next-line @typescript-eslint/no-explicit-any
-						instance?.subscribe((newValue) => replaceValue(keys as any, newValue, context))
-					)
+			const unsubscribers = Array.from(
+				contextMap,
+				([context, { keys, instance }]) => (	// eslint-disable-line @typescript-eslint/no-extra-parens
+					// eslint-disable-next-line @typescript-eslint/no-explicit-any
+					instance?.subscribe((newValue) => replaceValue(keys as any, newValue, context))
 				)
 			);
 

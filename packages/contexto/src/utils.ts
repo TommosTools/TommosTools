@@ -10,11 +10,9 @@ import { IS_SSR } from "./env";
 
 export const useIsomorphicLayoutEffect = IS_SSR ? useEffect : useLayoutEffect;
 
-export const runWithNormalPriority = (
-	runWithPriority
-		?	(block: () => void) => runWithPriority(NormalPriority, block)
-		:	(block: () => void) => block()		// For preact-compatibility, which doesn't have runWithPriority
-);
+export const runWithNormalPriority = runWithPriority
+	?	(block: () => void) => runWithPriority(NormalPriority, block)
+	:	(block: () => void) => block();		// For preact-compatibility, which doesn't have runWithPriority
 
 export function pick<T extends object, K extends keyof T>(value: T, keys: K[]): Pick<T, K>
 {
