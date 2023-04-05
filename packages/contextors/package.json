@@ -18,7 +18,7 @@
   "private": true,
   "scripts": {
     "compile": "tsup src/index.ts",
-    "lint": "eslint 'src/**/*.ts'",
+    "lint": "eslint 'src/**/*.{ts,tsx}'",
     "test": "jest",
     "type-check": "tsc"
   },

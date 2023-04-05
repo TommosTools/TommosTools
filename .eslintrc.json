@@ -11,6 +11,7 @@
 	},
 	"plugins": ["@typescript-eslint","react","react-hooks"],
 	"rules": {
+		"import/no-extraneous-dependencies": "off",
 		"react/react-in-jsx-scope": "off",
 		"@typescript-eslint/indent": ["error", "tab"],
 		"@typescript-eslint/quotes": ["error", "double"],
@@ -41,7 +42,12 @@
 			{
 				"ignoreJSX": "all"
 			}
-		]
+		],
+		"indent": [2, "tab", { "SwitchCase": 1, "VariableDeclarator": 1 }],
+		"no-tabs": 0,
+		"react/prop-types": 0,
+		"react/jsx-indent": [2, "tab"],
+		"react/jsx-indent-props": [2, "tab"]
 	},
 	"settings": {
 		"import/resolver": {
