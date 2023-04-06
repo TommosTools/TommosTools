@@ -1,9 +1,5 @@
 /* eslint-disable react/function-component-definition, 	@typescript-eslint/quotes */
 
-/**
- * @jest-environment jsdom
- */
-
 import { FC, useState } from "react";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";

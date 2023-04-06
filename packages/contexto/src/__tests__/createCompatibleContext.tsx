@@ -1,9 +1,5 @@
 /* eslint-disable react/static-property-placement, react/sort-comp, react/function-component-definition */
 
-/**
- * @jest-environment jsdom
- */
-
 import React, { ReactNode, useEffect, useRef } from "react";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";

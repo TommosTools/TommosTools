@@ -1,9 +1,5 @@
 /* eslint-disable react/function-component-definition, @typescript-eslint/no-extra-parens */
 
-/**
- * @jest-environment jsdom
- */
-
 import {
 	FC,
 	useEffect,
