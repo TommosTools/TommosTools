@@ -19,7 +19,7 @@ import {
 	Context,
 } from "../types";
 
-// eslint-disable-next-line @typescript-eslint/comma-dangle, react/require-default-props
+// eslint-disable-next-line @typescript-eslint/comma-dangle
 const Render = <T,>({ context, testId }: { context: Context<T>, testId?: string }) => (
 	<div>
 		<span role="heading" aria-level={1}>{ context.displayName }</span>

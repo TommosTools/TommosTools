@@ -1,3 +1,5 @@
+/* eslint-disable react/static-property-placement, react/sort-comp, react/function-component-definition */
+
 /**
  * @jest-environment jsdom
  */
@@ -12,67 +14,76 @@ const Context1 = createCompatibleContext("default value", { contextId: "test" })
 
 class ClassConsumer extends React.Component<{ testId?: string }>
 {
-	declare context: React.ContextType<typeof Context1>
+	declare context: React.ContextType<typeof Context1>;
+
 	static contextType = Context1;
 
 	render()
 	{
-		return <span data-testid={this.props.testId}>{this.context}</span>
+		const { props: { testId }, context } = this;
+
+		return <span data-testid={testId}>{context}</span>;
 	}
 }
 
 test("Basic ClassConsumer", () =>
-	{
-		render(<>
+{
+	render(
+		<>
 			<ClassConsumer testId="Context1.defaultValue" />
 			<Context1.Provider value="value1">
 				<ClassConsumer testId="Context1.Provider[0]" />
 			</Context1.Provider>
-		</>);
+		</>
+	);
 
-		expect(screen.getByTestId("Context1.defaultValue")).toHaveTextContent("default value");
-		expect(screen.getByTestId("Context1.Provider[0]")).toHaveTextContent("value1");
-	});
+	expect(screen.getByTestId("Context1.defaultValue")).toHaveTextContent("default value");
+	expect(screen.getByTestId("Context1.Provider[0]")).toHaveTextContent("value1");
+});
 
 test("ClassConsumer with ref update", () =>
+{
+	const ProviderWithHookUpdate = ({ children }: { children: ReactNode }) =>
 	{
-		const ProviderWithHookUpdate = ({ children }: { children: ReactNode }) =>
-			{
-				const ref = useRef<ProviderRef<string>>(null);
+		const ref = useRef<ProviderRef<string>>(null);
 
-				useEffect(() =>	ref.current?.update("value2"));
+		useEffect(() =>	ref.current?.update("value2"));
 
-				return <Context1.Provider value="value1" children={children} ref={ref} />
-			}
+		return <Context1.Provider value="value1" children={children} ref={ref} />;
+	};
 
-		render(<>
+	render(
+		<>
 			<ClassConsumer testId="Context1.defaultValue" />
 			<ProviderWithHookUpdate>
 				<ClassConsumer testId="Context1.Provider[0]" />
 			</ProviderWithHookUpdate>
-		</>);
+		</>
+	);
 
-		expect(screen.getByTestId("Context1.defaultValue")).toHaveTextContent("default value");
-		expect(screen.getByTestId("Context1.Provider[0]")).toHaveTextContent("value2");
-	});
+	expect(screen.getByTestId("Context1.defaultValue")).toHaveTextContent("default value");
+	expect(screen.getByTestId("Context1.Provider[0]")).toHaveTextContent("value2");
+});
 
 test("ClassConsumer with useContextUpdate() update", () =>
+{
+	const ComponentWithHookUpdate = () =>
 	{
-		const ComponentWithHookUpdate = () =>
-			{
-				const update = useContextUpdate(Context1);
-				useEffect(() => update("value2"));
-				return null;
-			}
+		const update = useContextUpdate(Context1);
+		useEffect(() => update("value2"));
+		return null;
+	};
 
-		render(<>
+	render(
+		<>
 			<ClassConsumer testId="Context1.defaultValue" />
 			<Context1.Provider value="value1">
-				<ComponentWithHookUpdate/>
+				<ComponentWithHookUpdate />
 				<ClassConsumer testId="Context1.Provider[0]" />
 			</Context1.Provider>
-		</>);
+		</>
+	);
 
-		expect(screen.getByTestId("Context1.defaultValue")).toHaveTextContent("default value");
-		expect(screen.getByTestId("Context1.Provider[0]")).toHaveTextContent("value2");
-	});
+	expect(screen.getByTestId("Context1.defaultValue")).toHaveTextContent("default value");
+	expect(screen.getByTestId("Context1.Provider[0]")).toHaveTextContent("value2");
+});
