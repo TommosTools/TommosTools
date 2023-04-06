@@ -1,23 +1,17 @@
 /* eslint-disable react/function-component-definition */
 
-/**
- * @jest-environment jsdom
- */
-
 import React, { ReactElement, useEffect, useState } from "react";
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import {
+	INHERIT,
 	createContext,
 	createProxyContext,
 	useContext,
 	useContextUpdate,
 	useContexts,
 } from "..";
-import {
-	INHERIT,
-	Context,
-} from "../types";
+import type { Context } from "../types";
 
 // eslint-disable-next-line @typescript-eslint/comma-dangle
 const Render = <T,>({ context, testId }: { context: Context<T>, testId?: string }) => (

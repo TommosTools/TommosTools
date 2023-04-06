@@ -1,9 +1,5 @@
 /* eslint-disable react/function-component-definition */
 
-/**
- * @jest-environment jsdom
- */
-
 import { render } from "@testing-library/react";
 import {
 	ReactNode,

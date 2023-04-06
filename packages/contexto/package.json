@@ -59,5 +59,8 @@
       "import": "./dist/dom/index.js",
       "default": "./dist/dom/index.cjs"
     }
+  },
+  "jest": {
+    "testEnvironment": "jsdom"
   }
 }

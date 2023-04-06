@@ -1,4 +1,4 @@
-/* eslint-disable react/function-component-definition */
+/* eslint-disable react/function-component-definition, @typescript-eslint/quotes */
 
 /**
  * @jest-environment jsdom
@@ -283,14 +283,14 @@ test("isEqual with multiple contexts", async () =>
 
 	render(<Component />);
 
-	expect(screen.getByTestId("useContexts")).toHaveTextContent("[\"def\",1]");
+	expect(screen.getByTestId("useContexts")).toHaveTextContent('["def",1]');
 
 	await user.click(screen.getByTestId("ClickTarget1"));
-	expect(screen.getByTestId("useContexts")).toHaveTextContent("[\"def\",1]");
+	expect(screen.getByTestId("useContexts")).toHaveTextContent('["def",1]');
 
 	await user.click(screen.getByTestId("ClickTarget2"));
-	expect(screen.getByTestId("useContexts")).toHaveTextContent("[\"def\",1]");
+	expect(screen.getByTestId("useContexts")).toHaveTextContent('["def",1]');
 
 	await user.click(screen.getByTestId("ClickTarget2"));
-	expect(screen.getByTestId("useContexts")).toHaveTextContent("[\"def\",3]");
+	expect(screen.getByTestId("useContexts")).toHaveTextContent('["def",3]');
 });
