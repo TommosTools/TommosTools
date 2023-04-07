@@ -1,9 +1,8 @@
 import {
-	createContext,
-	isContext,
 	Listener,
 	Subscriber,
 	Unsubscriber,
+	isContext,
 	useSubscriber,
 } from "contexto";
 import type { Context } from "contexto";
