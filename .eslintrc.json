@@ -42,7 +42,9 @@
 		"react/prop-types": 0,
 		"react/jsx-indent": [2, "tab"],
 		"react/jsx-indent-props": [2, "tab"],
-		"react/require-default-props": 0
+		"react/require-default-props": 0,
+		"no-lonely-if": 0,
+		"no-nested-ternary": 0
 	},
 	"settings": {
 		"import/resolver": {

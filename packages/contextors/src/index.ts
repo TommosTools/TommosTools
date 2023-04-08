@@ -22,9 +22,10 @@ export type Contextor<Arg, Out, ArgIsOptional extends boolean = boolean> = (
 	(false extends ArgIsOptional
 		?	((arg: Arg) => BoundContextor<Arg, Out>) & { __required: void }
 		:	never)
-) & { raw: RawContextor<any, Arg, Out> };
+) & { raw: RawContextor<any, Arg, Out> };	// eslint-disable-line @typescript-eslint/no-explicit-any
 
-type BoundContextor<Arg, Out> =	[RawContextor<any, Arg, Out>, Arg]
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type BoundContextor<Arg, Out> =	[RawContextor<any, Arg, Out>, Arg];
 
 function isBoundContextor<Arg, Out>(contextor: Contextor<Arg, Out> | BoundContextor<Arg, Out>)
 	: contextor is BoundContextor<Arg, Out>
@@ -34,8 +35,8 @@ function isBoundContextor<Arg, Out>(contextor: Contextor<Arg, Out> | BoundContex
 
 export type ArglessContextorInput<Out=unknown> = (
 	| Context<Out>
-	| Contextor<any, Out, true>
-)
+	| Contextor<any, Out, true>	// eslint-disable-line @typescript-eslint/no-explicit-any
+);
 
 export type ContextorInput<Arg, Out> = (
 	| Context<Out>
@@ -45,17 +46,18 @@ export type ContextorInput<Arg, Out> = (
 export type UseContextorInput<Arg, Out> = (
 	| Contextor<Arg, Out, true>
 	| BoundContextor<Arg, Out>
-)
+);
 
 type Tuple<T> = [] | [T, ...T[]];
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type OutputsFor<Inputs extends Tuple<ContextorInput<any, unknown>>> = Inputs extends infer InputsT ? {
 	[Index in keyof InputsT]: (
+		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		InputsT[Index] extends ContextorInput<any, infer Out> ? Out : InputsT[Index]
 	)
 } : never;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 {
 	readonly contexts: Set<Context<unknown>>;
@@ -72,7 +74,7 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 		{
 			if (isContext(input))
 				this.contexts.add(input);
-			else //if (isContextor(input))
+			else /* if (isContextor(input)) */
 			{
 				if (isBoundContextor(input))
 					input[0].contexts.forEach((context) => this.contexts.add(context));
@@ -87,7 +89,12 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 		return [this, arg];
 	}
 
-	subscribe(subscriber: Subscriber, onChange: Listener<Out>, arg: Arg, opts?: { memoProvider: MemoSlotProvider }): [Out, Unsubscriber]
+	subscribe(
+		subscriber:	Subscriber,
+		onChange:	Listener<Out>,
+		arg:		Arg,
+		opts?:		{ memoProvider: MemoSlotProvider }
+	): [Out, Unsubscriber]
 	{
 		const { inputs } = this;
 
@@ -96,10 +103,10 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 
 		const inputValues = (
 			inputs.map(
-				<Out>(input: ContextorInput<Arg, Out>, i: number) =>
+				<InnerOut>(input: ContextorInput<Arg, InnerOut>, i: number) =>
 				{
 					const updateValue = (
-						(newValue: Out) =>
+						(newValue: InnerOut) =>
 						{
 							inputValues[i] = newValue;
 							onChange(this.computeWithCache(inputValues, arg, opts?.memoProvider.iterator()));
@@ -110,8 +117,8 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 						isContext(input)
 							?	subscriber(input, updateValue)
 							:	isBoundContextor(input)
-									?	input[0].subscribe(subscriber, updateValue, arg, opts)
-									:	input.raw.subscribe(subscriber, updateValue, arg, opts)
+								?	input[0].subscribe(subscriber, updateValue, arg, opts)
+								:	input.raw.subscribe(subscriber, updateValue, arg, opts)
 					);
 
 					unsubscribers.push(unsubscribe);
@@ -139,7 +146,12 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 	{
 		const memoSlot = memoSlots?.next();
 
-		if (memoSlot?.inputValues && this.isEqual!([inputValues, arg], [memoSlot.inputValues, memoSlot.arg] as [OutputsFor<Inputs>, Arg]))
+		if (memoSlot?.inputValues
+			&& this.isEqual!(	// eslint-disable-line @typescript-eslint/no-non-null-assertion
+				[inputValues, arg],
+				[memoSlot.inputValues, memoSlot.arg] as [OutputsFor<Inputs>, Arg]
+			)
+		)
 			return memoSlot.out as Out;
 
 		const out = this.combiner(inputValues, arg);
@@ -233,16 +245,16 @@ class MemoSlotProvider
 	{
 		let	i = 0;
 
-		const slots = this.slots;
+		const { slots } = this;
 
 		return {
 			next(): MemoSlot
 			{
 				if (i >= slots.length)
-					slots.push({ inputValues: undefined!, arg: undefined, out: undefined });
+					slots.push({ inputValues: [], arg: undefined, out: undefined });
 
-				return slots[i++];
-			}
+				return slots[i++];	// eslint-disable-line no-plusplus
+			},
 		};
 	}
 }
@@ -266,8 +278,8 @@ function isObject(value: unknown): value is object
 	return value instanceof Object;
 }
 
-type CombinerParamsAreEqual<T extends unknown[], Arg extends unknown> =
-	(params: [T, Arg], otherParams: [T, Arg]) => boolean
+type CombinerParamsAreEqual<T extends unknown[], Arg> =
+	(params: [T, Arg], otherParams: [T, Arg]) => boolean;
 
 const shallowEqual = (array1: unknown[], array2: unknown[]) => (
 	(array1 === array2)
@@ -281,6 +293,7 @@ type ObjectExtract<T, U> = (
 );
 
 // Can't use vanilla Extract here because Arg introduces a circular constraint
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MandatoryArgBase<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg> =
 	ObjectExtract<CompatibleArgFor<Inputs>, Arg>;
 

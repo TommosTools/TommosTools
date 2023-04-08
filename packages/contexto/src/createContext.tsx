@@ -253,7 +253,7 @@ function useContextInstance<T>(
 {
 	const existingInstances	= useReactContext(InstanceStackContext);
 	const initialValue		= (				// eslint-disable-line @typescript-eslint/no-extra-parens
-		initialValueOrInherit !== INHERIT	// eslint-disable-line no-nested-ternary
+		initialValueOrInherit !== INHERIT
 			?	initialValueOrInherit
 			:	contextId in existingInstances
 				?	existingInstances[contextId].snapshot
