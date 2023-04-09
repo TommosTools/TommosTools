@@ -18,7 +18,7 @@
   "private": false,
   "scripts": {
     "compile": "tsup src/index.ts",
-    "lint": "eslint 'src/**/*.ts'",
+    "lint": "eslint 'src/**/*.ts*'",
     "test": "jest"
   },
   "type": "module",
@@ -41,5 +41,8 @@
   },
   "devDependencies": {
     "@types/react": "^18.0.27"
+  },
+  "jest": {
+    "testEnvironment": "jsdom"
   }
 }

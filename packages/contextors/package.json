@@ -42,5 +42,8 @@
   },
   "devDependencies": {
     "@types/react": "^18.0.27"
+  },
+  "jest": {
+    "testEnvironment": "jsdom"
   }
 }
