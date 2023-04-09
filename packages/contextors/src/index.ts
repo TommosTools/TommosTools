@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import {
 	Listener,
 	Subscriber,
@@ -13,6 +15,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { MemoSlotIterator, MemoSlotProvider } from "./memoslots";
 
 export type Contextor<Arg, Out, ArgIsOptional extends boolean = boolean> = (
 	(true extends ArgIsOptional
@@ -22,9 +25,8 @@ export type Contextor<Arg, Out, ArgIsOptional extends boolean = boolean> = (
 	(false extends ArgIsOptional
 		?	((arg: Arg) => BoundContextor<Arg, Out>) & { __required: void }
 		:	never)
-) & { raw: RawContextor<any, Arg, Out> };	// eslint-disable-line @typescript-eslint/no-explicit-any
+) & { raw: RawContextor<any, Arg, Out> };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type BoundContextor<Arg, Out> =	[RawContextor<any, Arg, Out>, Arg];
 
 function isBoundContextor<Arg, Out>(contextor: Contextor<Arg, Out> | BoundContextor<Arg, Out>)
@@ -35,7 +37,7 @@ function isBoundContextor<Arg, Out>(contextor: Contextor<Arg, Out> | BoundContex
 
 export type ArglessContextorInput<Out=unknown> = (
 	| Context<Out>
-	| Contextor<any, Out, true>	// eslint-disable-line @typescript-eslint/no-explicit-any
+	| Contextor<any, Out, true>
 );
 
 export type ContextorInput<Arg, Out> = (
@@ -50,10 +52,8 @@ export type UseContextorInput<Arg, Out> = (
 
 type Tuple<T> = [] | [T, ...T[]];
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type OutputsFor<Inputs extends Tuple<ContextorInput<any, unknown>>> = Inputs extends infer InputsT ? {
 	[Index in keyof InputsT]: (
-		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		InputsT[Index] extends ContextorInput<any, infer Out> ? Out : InputsT[Index]
 	)
 } : never;
@@ -234,31 +234,6 @@ class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 	}
 }
 
-type MemoSlot			= { inputValues: unknown[], arg: unknown, out: unknown };
-type MemoSlotIterator	= { next(): MemoSlot };
-
-class MemoSlotProvider
-{
-	private slots: MemoSlot[] = [];
-
-	iterator(): MemoSlotIterator
-	{
-		let	i = 0;
-
-		const { slots } = this;
-
-		return {
-			next(): MemoSlot
-			{
-				if (i >= slots.length)
-					slots.push({ inputValues: [], arg: undefined, out: undefined });
-
-				return slots[i++];	// eslint-disable-line no-plusplus
-			},
-		};
-	}
-}
-
 export function isContextor<Arg, Out>(value: unknown)
 	: value is Contextor<Arg, Out> | BoundContextor<Arg, Out>
 {
@@ -293,7 +268,6 @@ type ObjectExtract<T, U> = (
 );
 
 // Can't use vanilla Extract here because Arg introduces a circular constraint
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type MandatoryArgBase<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg> =
 	ObjectExtract<CompatibleArgFor<Inputs>, Arg>;
 
@@ -486,31 +460,29 @@ function useEffectOnUpdate(effect: () => (() => void), deps: unknown[])
 }
 
 type CompatibleArgsFor<Inputs extends Tuple<ContextorInput<any, any>>> = {
-	[Index in Exclude<keyof Inputs, keyof []> as (Inputs[Index] extends Contextor<any, any> ? Index : never)]:
-		ArgFor<Inputs[Index]>
-}
+	[Index in keyof Inputs as (Inputs[Index] extends Contextor<any, any> ? Index : never)]: ArgFor<Inputs[Index]>
+};
 
 type ArgFor<K> =
-    K extends Contextor<infer Arg, any, true>
-        ?   Arg
-        :   K extends Contextor<infer Arg, any, false>
-            ?   Arg
-            :   never;
+	K extends Contextor<infer Arg, any, true>
+		?	Arg
+		:	K extends Contextor<infer Arg, any, false>
+			?	Arg
+			:	never;
 
 type UnionToIntersection<T> = (T extends any ? (x: T) => any : never) extends (x: infer R) => any ? R : never;
 
 type WrapArg<T> = {
-    [K in keyof T]: { arg: T[K] }
-}
+	[K in keyof T]: { arg: T[K] }
+};
 
 type HandleWrappedNever<T> = [T] extends [never] ? { arg: never } : T;
 
 type CompatibleArgFor<Inputs extends Tuple<ContextorInput<any, any>>> =
-	({} extends CompatibleArgsFor<Inputs>
-		?   { arg: unknown }    // There are no args to be compatible with
-		:   HandleWrappedNever<UnionToIntersection<
-				WrapArg<CompatibleArgsFor<Inputs>>[keyof CompatibleArgsFor<Inputs>]
-			>>
+	({} extends CompatibleArgsFor<Inputs>	// eslint-disable-line @typescript-eslint/ban-types
+		?	{ arg: unknown }				// There are no args to be compatible with
+		:	HandleWrappedNever<UnionToIntersection<	// eslint-disable-next-line @typescript-eslint/indent
+				WrapArg<CompatibleArgsFor<Inputs>>[keyof CompatibleArgsFor<Inputs>]>>
 	) extends { arg: infer Arg }
 		?	[Arg] extends [object] ? (Arg & object) : Arg	// force (primitive & { ... }) to map to never
 		:	never;
