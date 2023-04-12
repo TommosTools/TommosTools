@@ -33,13 +33,16 @@ export type UseContextorInput<Arg, Out> = (
 	| BoundContextor<Arg, Out>
 );
 
+export type OutputFor<Input extends ContextorInput<any, unknown>> =
+	Input extends ContextorInput<any, infer Out> ? Out : never;
+
 export type OutputsFor<Inputs extends Tuple<ContextorInput<any, unknown>>> = Inputs extends infer InputsT ? {
 	[Index in keyof InputsT]: (
 		InputsT[Index] extends ContextorInput<any, infer Out> ? Out : InputsT[Index]
 	)
 } : never;
 
-export type CombinerParamsAreEqual<T extends unknown[], Arg> =
+export type CombinerParamsAreEqual<T extends unknown, Arg> =
 	(params: [T, Arg], otherParams: [T, Arg]) => boolean;
 
 type ObjectExtract<T, U> = (

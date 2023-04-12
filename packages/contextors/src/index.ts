@@ -19,6 +19,7 @@ import {
 	Contextor,
 	ContextorInput,
 	MandatoryArgBase,
+	OutputFor,
 	OutputsFor,
 	Simplify,
 	Tuple,
@@ -26,6 +27,49 @@ import {
 } from "./types";
 import { RawContextor } from "./rawcontextor";
 import { isBoundContextor } from "./utils";
+
+export function createContextor<
+	Input extends ArglessContextorInput,
+	Arg extends MandatoryArgBase<[Input], Arg>,
+	Out=never
+>(
+	input:		Input,
+	combiner:	(input: OutputFor<Input>, arg: Arg | undefined) => Out,
+	isEqual?:	CombinerParamsAreEqual<OutputFor<Input>, Arg>
+): (
+	[Out] extends [never]
+		?	Contextor<never, never>
+		:	Contextor<Simplify<Arg & CompatibleArgFor<[Input]>>, Out, true>
+);
+
+export function createContextor<
+	Input extends ArglessContextorInput,
+	Out
+>(
+	input:		Input,
+	combiner:	(input: OutputFor<Input>, arg?: never) => Out,
+	isEqual?:	CombinerParamsAreEqual<OutputFor<Input>, unknown>
+): Contextor<unknown, Out, true>;
+
+export function createContextor<
+	Input extends ContextorInput<any, unknown>,
+	Arg extends MandatoryArgBase<[Input], Arg>,
+	Out
+>(
+	input:		[CompatibleArgFor<[Input]>] extends [never] ? never : Input,
+	combiner:	(input: OutputFor<Input>, arg: Arg) => Out,
+	isEqual?:	CombinerParamsAreEqual<OutputFor<Input>, Arg>
+): Contextor<Simplify<Arg & CompatibleArgFor<[Input]>>, Out, false>;
+
+export function createContextor<
+	Input extends ContextorInput<any, unknown>,
+	Arg extends CompatibleArgFor<[Input]>,
+	Out
+>(
+	input:		Input,
+	combiner:	[CompatibleArgFor<[Input]>] extends [never] ? never : Input,
+	isEqual?:	CombinerParamsAreEqual<OutputFor<Input>, Arg>
+): Contextor<Simplify<Arg & CompatibleArgFor<[Input]>>, Out, false>;
 
 //
 // Match combiners that produce a contextor with an OPTIONAL argument.
@@ -95,19 +139,59 @@ export function createContextor<
 	isEqual?:	CombinerParamsAreEqual<OutputsFor<Inputs>, Arg>
 ): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
 
-export function createContextor<Inputs extends Tuple<ContextorInput<Arg, any>>, Arg, Out>(
+export function createContextor<
+	Inputs extends (true extends Single ? ContextorInput<Arg, any> : Tuple<ContextorInput<Arg, any>>),
+	Arg,
+	Out,
+	Single extends boolean
+>(
 	inputs:		Inputs,
-	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
-	isEqual?:	CombinerParamsAreEqual<OutputsFor<Inputs>, Arg>
+	combiner:	(inputs: OutputOf<Inputs, Arg, Single>, arg: Arg) => Out,
+	isEqual?:	CombinerParamsAreEqual<OutputOf<Inputs, Arg, Single>, Arg>
 )
 {
-	const raw = new RawContextor(inputs, combiner, isEqual);
+	const raw: RawContextor<Inputs, Arg, unknown>;
+
+	if (isContextorInput(inputs as any))
+	{
+		type Output = OutputOf<Inputs, Arg>;
+
+		const wrappedCombiner =
+			(input: [Output], arg: Arg) => combiner(input[0], arg);
+
+		const wrappedIsEqual = isEqual && (
+			([[output1], arg1]: [[Output], Arg], [[output2], arg2]: [[Output], Arg]) =>
+				isEqual([output1, arg1], [output2, arg2])
+		);
+
+		const raw = new RawContextor([inputs], wrappedCombiner, wrappedIsEqual);
+	}
+
+	// const raw = (
+	// 	isContextorInput(inputs)
+	// 		?	new RawContextor([inputs], (inputs, arg) => combiner(inputs[0] as OutputOf<Inputs, Arg>, arg), isEqual)
+	// 		:	new RawContextor(inputs, combiner, isEqual)
+	// );
 
 	const contextor = (arg: Arg) => raw.withArg(arg);
 	contextor.raw = raw;
 
 	return contextor;
 }
+
+function isContextorInput<Arg, Inputs extends Tuple<ContextorInput<Arg, any>>>(
+	inputs: Inputs | ContextorInput<Arg, any>
+): inputs is ContextorInput<Arg, any>
+{
+	return !Array.isArray(inputs);
+}
+
+type OutputOf<Inputs extends (true extends Single ? Tuple<ContextorInput<Arg, any>> : ContextorInput<Arg, any>), Arg, Single extends boolean> =
+	Inputs extends Tuple<ContextorInput<Arg, any>>
+		?	OutputsFor<Inputs>	:
+	Inputs extends ContextorInput<Arg, any>
+		?	OutputFor<Inputs>
+		:	never;
 
 function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>): State<T, Arg>
 {

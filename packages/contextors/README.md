@@ -3,7 +3,7 @@ contextors
 
 A library for creating memoised \"context selector\" functions
 
-## Usage
+## Basic Usage
 
     const UserContext = contexto.createContext({ id: 1, firstName: "John", lastName: "Smith" });
 
@@ -14,3 +14,7 @@ A library for creating memoised \"context selector\" functions
 
     const UserNameComponent = () =>
       <div>{ useContextor(selectUserName) }</div>
+
+## Advanced Usage
+
+Contextors can be created 
