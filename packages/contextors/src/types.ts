@@ -15,8 +15,10 @@ export type Contextor<Arg, Out, ArgIsOptional extends boolean = boolean> = (
 		:	never)
 ) & { raw: RawContextor<any, Arg, Out> };
 
-export type BoundContextor<Arg, Out, Inputs extends Tuple<ContextorInput<Arg, unknown>> = any> =
-	[RawContextor<Inputs, Arg, Out>, Arg];
+// export type BoundContextor<Arg, Out, Inputs extends Tuple<ContextorInput<Arg, unknown>> = any> =
+// 	[RawContextor<Inputs, Arg, Out>, Arg];
+export type BoundContextor<Arg, Out> = [RawContextor<any, Arg, Out>, Arg];
+
 
 export type ArglessContextorInput<Out=unknown> = (
 	| Context<Out>
