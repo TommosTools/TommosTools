@@ -34,7 +34,7 @@ export function createSimpleContextor<
 	Out=never
 >(
 	input:		Input,
-	combiner:	(input: OutputFor<Input>, arg: Arg | undefined) => Out,
+	extractor:	(input: OutputFor<Input>, arg: Arg | undefined) => Out,
 	isEqual?:	CombinerParamsAreEqual<OutputFor<Input>, Arg>
 ): (
 	[Out] extends [never]
@@ -47,7 +47,7 @@ export function createSimpleContextor<
 	Out
 >(
 	input:		Input,
-	combiner:	(input: OutputFor<Input>, arg?: never) => Out,
+	extractor:	(input: OutputFor<Input>, arg?: never) => Out,
 	isEqual?:	CombinerParamsAreEqual<OutputFor<Input>, unknown>
 ): Contextor<unknown, Out, true>;
 
@@ -57,7 +57,7 @@ export function createSimpleContextor<
 	Out
 >(
 	input:		[CompatibleArgFor<[Input]>] extends [never] ? never : Input,
-	combiner:	(input: OutputFor<Input>, arg: Arg) => Out,
+	extractor:	(input: OutputFor<Input>, arg: Arg) => Out,
 	isEqual?:	CombinerParamsAreEqual<OutputFor<Input>, Arg>
 ): Contextor<Simplify<Arg & CompatibleArgFor<[Input]>>, Out, false>;
 
@@ -67,11 +67,11 @@ export function createSimpleContextor<
 	Out
 >(
 	input:		Input,
-	combiner:	[CompatibleArgFor<[Input]>] extends [never] ? never : Input,
+	extractor:	[CompatibleArgFor<[Input]>] extends [never] ? never : Input,
 	isEqual?:	CombinerParamsAreEqual<OutputFor<Input>, Arg>
 ): Contextor<Simplify<Arg & CompatibleArgFor<[Input]>>, Out, false>;
 
-export function createSimpleContextor<Input extends ContextorInput<Arg, Out>, Arg, Out>(
+export function createSimpleContextor<Input extends ContextorInput<Arg, unknown>, Arg, Out>(
 	input:		Input,
 	extractor:	(input: OutputFor<Input>, arg: Arg) => Out,
 	isEqual?:	CombinerParamsAreEqual<OutputFor<Input>, Arg>
@@ -79,15 +79,17 @@ export function createSimpleContextor<Input extends ContextorInput<Arg, Out>, Ar
 {
 	type Output = OutputFor<Input>;
 
+	const wrappedInput = [input];
+
 	const wrappedCombiner =
-		(input: [Output], arg: Arg) => extractor(input[0], arg);
+		(inputs: [OutputFor<Input>], arg: Arg) => extractor(inputs[0], arg);
 
 	const wrappedIsEqual = isEqual && (
 		([[output1], arg1]: [[Output], Arg], [[output2], arg2]: [[Output], Arg]) =>
 			isEqual([output1, arg1], [output2, arg2])
 	);
 
-	const raw = new RawContextor<[Input], Arg, Out>([input], wrappedCombiner, wrappedIsEqual);
+	const raw = new RawContextor(wrappedInput as any, wrappedCombiner as any, wrappedIsEqual as any);
 
 	const contextor = (arg: Arg) => raw.withArg(arg);
 	contextor.raw = raw;

@@ -2,7 +2,7 @@
 
 import { renderHook } from "@testing-library/react";
 import { createContext } from "contexto";
-import { createContextor, useContextor } from "..";
+import { createContextor, createSimpleContextor, useContextor } from "..";
 
 const Context1 = createContext({ contextValue: 42 }, { contextId: "Context1" });
 
@@ -507,4 +507,84 @@ test("Can't supply a raw context to useContextor", () =>
 		// @ts-expect-error -- Context is not a Contextor
 		() => useContextor(Context1)
 	)).toThrow(TypeError);
+});
+
+test("createSimpleContextor with context input and mandatory argument", () =>
+{
+	const Contextor = createSimpleContextor(
+		Context1,
+		(context1, arg: { numericArg: number }) => context1.contextValue + arg.numericArg
+	);
+
+	expect(() => renderHook(
+		// @ts-expect-error -- contextor requires an argument, so the bare call is forbidden
+		() => useContextor(Contextor)
+	)).toThrow(TypeError);
+
+	expect(renderHook(
+		() => useContextor(Contextor({ numericArg: 5 }))
+	).result.current).toBe(42 + 5);
+});
+
+test("createSimpleContextor with single context input and optional argument", () =>
+{
+	const Contextor = createSimpleContextor(
+		Context1,
+		(context1, arg: { stringArg: string } | undefined) => (
+			String(expectNumber(context1.contextValue)) + expectString(arg?.stringArg ?? "")
+		)
+	);
+
+	expect(renderHook(
+		() => useContextor(Contextor)
+	).result.current).toBe("42");
+
+	expect(renderHook(
+		() => useContextor(Contextor())				// Equivalent to bare call
+	).result.current).toBe("42");
+
+	expect(renderHook(
+		() => useContextor(Contextor(undefined))	// Equivalent to bare call
+	).result.current).toBe("42");
+
+	expect(renderHook(
+		() => useContextor(Contextor({ stringArg: "!" }))
+	).result.current).toBe("42!");
+});
+
+test("createSimpleContextor with single context input and no argument", () =>
+{
+	const ArglessContextor = createSimpleContextor(
+		Context1,
+		(context1) => expectNumber(context1.contextValue) * 2
+	);
+
+	expect(renderHook(
+		() => useContextor(ArglessContextor)
+	).result.current).toBe(42 * 2);
+
+	expect(renderHook(
+		() => useContextor(ArglessContextor())		// Equivalent to bare call
+	).result.current).toBe(42 * 2);
+
+	expect(renderHook(
+		() => useContextor(ArglessContextor(undefined))	// equivalent to bare call
+	).result.current).toBe(42 * 2);
+});
+
+test("Combine contextors created with createSimpleContextor", () =>
+{
+	const Input1 = createSimpleContextor(Context1, context1 => `(${context1.contextValue}`);
+	const Input2 = createSimpleContextor(Context1, (context1, arg: string) => `(${context1.contextValue}, ${expectString(arg)})`);
+
+	const CombinedContextor = createContextor([Input1, Input2], ([input1, input2]) => `(${input1}, ${input2})`);
+
+	expect(() => renderHook(
+		// @ts-expect-error -- arg is required
+		() => useContextor(CombinedContextor)
+	)).toThrow(ExpectedStringError);
+
+	expect(renderHook(
+		() => useContextor(CombinedContextor("xxx"))
+	).result.current).toBe("((42, (42, xxx))")
 });
