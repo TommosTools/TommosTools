@@ -15,10 +15,7 @@ export type Contextor<Arg, Out, ArgIsOptional extends boolean = boolean> = (
 		:	never)
 ) & { raw: RawContextor<any, Arg, Out> };
 
-// export type BoundContextor<Arg, Out, Inputs extends Tuple<ContextorInput<Arg, unknown>> = any> =
-// 	[RawContextor<Inputs, Arg, Out>, Arg];
 export type BoundContextor<Arg, Out> = [RawContextor<any, Arg, Out>, Arg];
-
 
 export type ArglessContextorInput<Out=unknown> = (
 	| Context<Out>
@@ -44,7 +41,7 @@ export type OutputsFor<Inputs extends Tuple<ContextorInput<any, unknown>>> = Inp
 	)
 } : never;
 
-export type CombinerParamsAreEqual<T extends unknown, Arg> =
+export type CombinerParamsAreEqual<T, Arg> =
 	(params: [T, Arg], otherParams: [T, Arg]) => boolean;
 
 type ObjectExtract<T, U> = (

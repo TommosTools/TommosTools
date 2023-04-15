@@ -81,12 +81,12 @@ export function createSimpleContextor<Input extends ContextorInput<Arg, unknown>
 
 	const wrappedInput = [input];
 
-	const wrappedCombiner =
-		(inputs: [OutputFor<Input>], arg: Arg) => extractor(inputs[0], arg);
+	const wrappedCombiner = (inputs: [OutputFor<Input>], arg: Arg) => extractor(inputs[0], arg);
 
 	const wrappedIsEqual = isEqual && (
-		([[output1], arg1]: [[Output], Arg], [[output2], arg2]: [[Output], Arg]) =>
+		([[output1], arg1]: [[Output], Arg], [[output2], arg2]: [[Output], Arg]) => (
 			isEqual([output1, arg1], [output2, arg2])
+		)
 	);
 
 	const raw = new RawContextor(wrappedInput as any, wrappedCombiner as any, wrappedIsEqual as any);
@@ -178,9 +178,6 @@ export function createContextor<Inputs extends Tuple<ContextorInput<Arg, any>>, 
 
 	return contextor;
 }
-
-
-// TODO FIXME: test for types with { [k: string]: foo } vs { "blah": foo } etc 
 
 function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>): State<T, Arg>
 {

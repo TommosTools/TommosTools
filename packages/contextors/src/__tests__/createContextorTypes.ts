@@ -574,8 +574,11 @@ test("createSimpleContextor with single context input and no argument", () =>
 
 test("Combine contextors created with createSimpleContextor", () =>
 {
-	const Input1 = createSimpleContextor(Context1, context1 => `(${context1.contextValue}`);
-	const Input2 = createSimpleContextor(Context1, (context1, arg: string) => `(${context1.contextValue}, ${expectString(arg)})`);
+	const Input1 = createSimpleContextor(Context1, (context1) => `(${context1.contextValue}`);
+	const Input2 = createSimpleContextor(
+		Context1,
+		(context1, arg: string) => `(${context1.contextValue}, ${expectString(arg)})`
+	);
 
 	const CombinedContextor = createContextor([Input1, Input2], ([input1, input2]) => `(${input1}, ${input2})`);
 
@@ -586,5 +589,28 @@ test("Combine contextors created with createSimpleContextor", () =>
 
 	expect(renderHook(
 		() => useContextor(CombinedContextor("xxx"))
-	).result.current).toBe("((42, (42, xxx))")
+	).result.current).toBe("((42, (42, xxx))");
+});
+
+test("test indexable arg merging with keyed arg", () =>
+{
+	const Input1 = createSimpleContextor(
+		Context1,
+		(context1, arg: { [k: string]: number }) => `(${context1.contextValue}, ${JSON.stringify(arg)})`
+	);
+	const Input2 = createSimpleContextor(
+		Context1,
+		(context1, arg: { foo: number }) => `(${context1.contextValue}, ${expectNumber(arg.foo)})`
+	);
+
+	const CombinedContextor = createContextor([Input1, Input2], ([input1, input2]) => `(${input1}, ${input2})`);
+
+	expect(() => renderHook(
+		// @ts-expect-error -- arg is required
+		() => useContextor(CombinedContextor)
+	)).toThrow(TypeError);
+
+	expect(renderHook(
+		() => useContextor(CombinedContextor({ foo: 23 }))
+	).result.current).toBe("((42, {\"foo\":23}), (42, 23))");
 });
