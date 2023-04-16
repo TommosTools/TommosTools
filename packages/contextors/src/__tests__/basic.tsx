@@ -97,3 +97,37 @@ test("basic test", () =>
 	expect(screen.getByTestId("summary2")).toHaveTextContent("Mary Moore (Group Admin)");
 	expect(screen.getByTestId("summary3")).toHaveTextContent("John Smith (Admin, Tester)");
 });
+
+test("Example from docs", () =>
+{
+	const UserContext  = createContext({ id: 1, firstName: "Henry", lastName: "Lemming", teamIds: [1, 3] });
+    const TeamsContext = createContext([
+      { id: 1, name: "Builders" },
+      { id: 2, name: "Climbers" },
+      { id: 3, name: "Floaters" },
+      { id: 4, name: "Miners" }
+    ]);
+
+    const TeamsLookup = createContextor(
+      [TeamsContext],
+      ([teams]) => Object.fromEntries(teams.map(team => [team.id, team]))
+    );
+
+    const UserSummary = createContextor(
+      [UserContext, TeamsLookup],
+      ([user, teamsById]) => ({
+        name:      `${user.firstName} ${user.lastName}`,
+        teamNames: user.teamIds.map(id => teamsById[id].name).join(", ")
+      })
+    )
+    const UserSummaryComponent = () => {
+      const { name, teamNames } = useContextor(UserSummary);
+      return <div data-testid="content">
+		  <b>{name}</b> <div>({ teamNames || "no teams" })</div>
+		</div>;
+	};
+
+	render(<UserSummaryComponent/>);
+
+	expect(screen.getByTestId("content")).toHaveTextContent("Henry Lemming (Builders, Floaters)");
+})
