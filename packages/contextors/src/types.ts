@@ -83,3 +83,8 @@ export type CompatibleArgFor<Inputs extends Tuple<ContextorInput<any, any>>> =
 	) extends { arg: infer Arg }
 		?	[Arg] extends [object] ? (Arg & object) : Arg	// force (primitive & { ... }) to map to never
 		:	never;
+
+export type ContextorOptions<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg> =
+	Partial<{
+		isEqual:	CombinerParamsAreEqual<OutputsFor<Inputs>, Arg>;
+	}>;

@@ -36,23 +36,23 @@ type Group = {
 	name:		string;
 };
 
-const UserContext	= createContext<User | null>(null, { contextId: "userContext" });
-const GroupsContext	= createContext<Group[]>([], { contextId: "groupsContext" });
-
-const selectGroupLookup = createContextor(
-	[GroupsContext],
-	([groups]) => Object.fromEntries(groups.map((group) => [group.id, group]))
-);
-
-const selectUserSummary = createContextor(
-	[UserContext, selectGroupLookup],
-	([user, groupLookup]) => (
-		user && `${user.firstName} ${user.lastName} (${user.groupIds.map((id) => groupLookup[id].name).join(", ")})`
-	)
-);
-
 test("basic test", () =>
 {
+	const UserContext	= createContext<User | null>(null, { contextId: "userContext" });
+	const GroupsContext	= createContext<Group[]>([], { contextId: "groupsContext" });
+
+	const selectGroupLookup = createContextor(
+		[GroupsContext],
+		([groups]) => Object.fromEntries(groups.map((group) => [group.id, group]))
+	);
+
+	const selectUserSummary = createContextor(
+		[UserContext, selectGroupLookup],
+		([user, groupLookup]) => (
+			user && `${user.firstName} ${user.lastName} (${user.groupIds.map((id) => groupLookup[id].name).join(", ")})`
+		)
+	);
+
 	const user1: User = {
 		id: "1",
 		firstName: "John",
@@ -100,34 +100,45 @@ test("basic test", () =>
 
 test("Example from docs", () =>
 {
-	const UserContext  = createContext({ id: 1, firstName: "Henry", lastName: "Lemming", teamIds: [1, 3] });
-    const TeamsContext = createContext([
-      { id: 1, name: "Builders" },
-      { id: 2, name: "Climbers" },
-      { id: 3, name: "Floaters" },
-      { id: 4, name: "Miners" }
-    ]);
+	const UserContext = createContext({
+		id: 1,
+		firstName: "Henry",
+		lastName: "Lemming",
+		teamIds: [1, 3],
+	});
 
-    const TeamsLookup = createContextor(
-      [TeamsContext],
-      ([teams]) => Object.fromEntries(teams.map(team => [team.id, team]))
-    );
+	const TeamsContext = createContext([
+		{ id: 1, name: "Builders" },
+		{ id: 2, name: "Climbers" },
+		{ id: 3, name: "Floaters" },
+		{ id: 4, name: "Miners" },
+	]);
 
-    const UserSummary = createContextor(
-      [UserContext, TeamsLookup],
-      ([user, teamsById]) => ({
-        name:      `${user.firstName} ${user.lastName}`,
-        teamNames: user.teamIds.map(id => teamsById[id].name).join(", ")
-      })
-    )
-    const UserSummaryComponent = () => {
-      const { name, teamNames } = useContextor(UserSummary);
-      return <div data-testid="content">
-		  <b>{name}</b> <div>({ teamNames || "no teams" })</div>
-		</div>;
+	const TeamsLookup = createContextor(
+		[TeamsContext],
+		([teams]) => Object.fromEntries(teams.map((team) => [team.id, team]))
+	);
+
+	const UserSummary = createContextor(
+		[UserContext, TeamsLookup],
+		([user, teamsById]) => ({
+			name: `${user.firstName} ${user.lastName}`,
+			teamNames: user.teamIds.map((id) => teamsById[id].name).join(", "),
+		})
+	);
+
+	const UserSummaryComponent = () =>
+	{
+		const { name, teamNames } = useContextor(UserSummary);
+		return (
+			<div data-testid="content">
+				<b>{name}</b>
+				<span>{ ` (${teamNames || "No teams"})` }</span>
+			</div>
+		);
 	};
 
-	render(<UserSummaryComponent/>);
+	render(<UserSummaryComponent />);
 
 	expect(screen.getByTestId("content")).toHaveTextContent("Henry Lemming (Builders, Floaters)");
-})
+});
