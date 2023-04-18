@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import {
+	isContext,
 	Unsubscriber,
 	useSubscriber,
 } from "contexto";
@@ -26,7 +27,7 @@ import {
 	Tuple,
 	UseContextorInput,
 } from "./types";
-import { RawContextor } from "./rawcontextor";
+import { isContextor, RawContextor } from "./rawcontextor";
 import { isBoundContextor } from "./utils";
 
 export function createSimpleContextor<
@@ -166,18 +167,114 @@ export function createContextor<
 	options?:	ContextorOptions<Inputs, Arg>
 ): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
 
+// ...
+
+export function createContextor<
+	Inputs extends Tuple<ArglessContextorInput>,
+	Arg extends MandatoryArgBase<Inputs, Arg>,
+	Out=never
+>(
+	...params: [
+		/* inputs */	...Inputs,
+		/* combiner */	(inputs: OutputsFor<Inputs>, arg: Arg | undefined) => Out,
+		/* options? */	...([ContextorOptions<Inputs, Arg>] | [])
+	]
+): (
+	[Out] extends [never]
+		?	Contextor<never, never>
+		:	Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, true>
+);
+
+//
+// Special case of the above: produce a contextor with an OPTIONAL argument,
+// when provided a combiner which takes NO argument.
+//
+export function createContextor<
+	Inputs extends Tuple<ArglessContextorInput>,
+	Out
+>(
+	...params: [
+		/* inputs */	...Inputs,
+		/* combiner */	(inputs: OutputsFor<Inputs>, arg?: never) => Out,
+		/* options? */	...([ContextorOptions<Inputs, unknown>] | [])
+	]
+): Contextor<unknown, Out, true>;
+
+//
+// General case: produce a contextor that requires an argument.
+// This argument must be compatible with the combiner argument and all the inputs,
+// e.g. combiner taking `{ foo: number }` and input taking `{ bar: string }` produces a
+// contextor taking `{ foo: number, bar: string }`.
+//
+export function createContextor<
+	Inputs extends Tuple<ContextorInput<any, unknown>>,
+	Arg extends MandatoryArgBase<Inputs, Arg>,
+	Out
+>(
+	...params: [
+		/* inputs */	...([CompatibleArgFor<Inputs>] extends [never] ? never : Inputs),
+		/* combiner */	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
+		/* options? */	...([ContextorOptions<Inputs, Arg>] | [])
+	]
+): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
+
+//
+// Catch-all: if arguments for the combiner and any inputs are incompatible then
+// we fall through to this declaration, which provides a more helpful type error.
+// 
+export function createContextor<
+	Inputs extends Tuple<ContextorInput<any, unknown>>,
+	Arg extends CompatibleArgFor<Inputs>,
+	Out
+>(
+	...params: [
+		/* inputs */	...([CompatibleArgFor<Inputs>] extends [never] ? never : Inputs),
+		/* combiner */	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
+		/* options? */	...([ContextorOptions<Inputs, Arg>] | [])
+	]
+): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
+
 export function createContextor<Inputs extends Tuple<ContextorInput<Arg, any>>, Arg, Out>(
-	inputs:		Inputs,
-	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
-	options?:	ContextorOptions<Inputs, Arg>
+	params: [
+		/* inputs */	...(Inputs | [Inputs]),
+		/* combiner */	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
+		/* options? */	...([ContextorOptions<Inputs, Arg>] | [])
+	]
 )
 {
+	const rawParams	= [...params as any];
+	const lastParam	= rawParams.pop();
+
+	const [combiner, options] = (
+		(typeof lastParam === "object")
+			? [rawParams.pop(),	lastParam]
+			: [lastParam,		{}]
+	);
+
+	const inputs = Array.isArray(rawParams[0]) ? rawParams[0] : rawParams;
+
+	assertValidInputs(inputs);
+
 	const raw = new RawContextor(inputs, combiner, options?.isEqual);
 
 	const contextor = (arg: Arg) => raw.withArg(arg);
 	contextor.raw = raw;
 
 	return contextor;
+}
+
+function assertValidInputs(inputs: unknown[]): asserts inputs is Tuple<ContextorInput<unknown, unknown>>
+{
+	if (! inputs.every(input => isContext(input) || isContextor(input)))
+	{
+		const inputTypes = inputs.map(
+			(input) => typeof input === "function" ? input.toString() : typeof input
+		).join(", ");
+
+		throw new Error(
+			`createContextor expects each input to be a Context or a Contextor, but received the following types: [${inputTypes}]`
+		);
+	}
 }
 
 function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>): State<T, Arg>
