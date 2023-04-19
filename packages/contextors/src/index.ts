@@ -124,6 +124,23 @@ export function createContextor<
 		:	Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, true>
 );
 
+export function createContextor<
+	Inputs extends Tuple<ArglessContextorInput>,
+	Arg extends MandatoryArgBase<Inputs, Arg>,
+	Out=never
+>(
+	...params: [
+		...inputs:	Inputs,
+		combiner:	(inputs: OutputsFor<Inputs>, arg: Arg | undefined) => Out,
+		options?:	ContextorOptions<Inputs, Arg>
+	]
+): (
+	[Out] extends [never]
+		?	Contextor<never, never> & { case0a: void }
+		:	Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, true>
+);
+
+
 //
 // Special case of the above: produce a contextor with an OPTIONAL argument,
 // when provided a combiner which takes NO argument.
@@ -137,66 +154,14 @@ export function createContextor<
 	options?:	ContextorOptions<Inputs, unknown>
 ): Contextor<unknown, Out, true>;
 
-//
-// General case: produce a contextor that requires an argument.
-// This argument must be compatible with the combiner argument and all the inputs,
-// e.g. combiner taking `{ foo: number }` and input taking `{ bar: string }` produces a
-// contextor taking `{ foo: number, bar: string }`.
-//
-export function createContextor<
-	Inputs extends Tuple<ContextorInput<any, unknown>>,
-	Arg extends MandatoryArgBase<Inputs, Arg>,
-	Out
->(
-	inputs:		[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
-	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
-	options?:	ContextorOptions<Inputs, Arg>
-): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
-
-//
-// Catch-all: if arguments for the combiner and any inputs are incompatible then
-// we fall through to this declaration, which provides a more helpful type error.
-// 
-export function createContextor<
-	Inputs extends Tuple<ContextorInput<any, unknown>>,
-	Arg extends CompatibleArgFor<Inputs>,
-	Out
->(
-	inputs:		[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
-	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
-	options?:	ContextorOptions<Inputs, Arg>
-): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
-
-// ...
-
-export function createContextor<
-	Inputs extends Tuple<ArglessContextorInput>,
-	Arg extends MandatoryArgBase<Inputs, Arg>,
-	Out=never
->(
-	...params: [
-		/* inputs */	...Inputs,
-		/* combiner */	(inputs: OutputsFor<Inputs>, arg: Arg | undefined) => Out,
-		/* options? */	...([ContextorOptions<Inputs, Arg>] | [])
-	]
-): (
-	[Out] extends [never]
-		?	Contextor<never, never>
-		:	Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, true>
-);
-
-//
-// Special case of the above: produce a contextor with an OPTIONAL argument,
-// when provided a combiner which takes NO argument.
-//
 export function createContextor<
 	Inputs extends Tuple<ArglessContextorInput>,
 	Out
 >(
 	...params: [
-		/* inputs */	...Inputs,
-		/* combiner */	(inputs: OutputsFor<Inputs>, arg?: never) => Out,
-		/* options? */	...([ContextorOptions<Inputs, unknown>] | [])
+		...inputs:	Inputs,
+		combiner:	(inputs: OutputsFor<Inputs>, arg?: never) => Out,
+		options?:	ContextorOptions<Inputs, unknown>
 	]
 ): Contextor<unknown, Out, true>;
 
@@ -211,10 +176,20 @@ export function createContextor<
 	Arg extends MandatoryArgBase<Inputs, Arg>,
 	Out
 >(
+	inputs:		[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
+	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
+	options?:	ContextorOptions<Inputs, Arg>
+): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
+
+export function createContextor<
+	Inputs extends Tuple<ContextorInput<any, unknown>>,
+	Arg extends MandatoryArgBase<Inputs, Arg>,
+	Out
+>(
 	...params: [
-		/* inputs */	...([CompatibleArgFor<Inputs>] extends [never] ? never : Inputs),
-		/* combiner */	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
-		/* options? */	...([ContextorOptions<Inputs, Arg>] | [])
+		...inputs:	[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
+		combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
+		options?:	ContextorOptions<Inputs, Arg>
 	]
 ): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
 
@@ -227,18 +202,16 @@ export function createContextor<
 	Arg extends CompatibleArgFor<Inputs>,
 	Out
 >(
-	...params: [
-		/* inputs */	...([CompatibleArgFor<Inputs>] extends [never] ? never : Inputs),
-		/* combiner */	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
-		/* options? */	...([ContextorOptions<Inputs, Arg>] | [])
-	]
+	inputs:		[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
+	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
+	options?:	ContextorOptions<Inputs, Arg>
 ): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
 
 export function createContextor<Inputs extends Tuple<ContextorInput<Arg, any>>, Arg, Out>(
-	params: [
-		/* inputs */	...(Inputs | [Inputs]),
-		/* combiner */	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
-		/* options? */	...([ContextorOptions<Inputs, Arg>] | [])
+	...params: [
+		...inputs:	(Inputs | [Inputs]),
+		combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
+		options?:	ContextorOptions<Inputs, Arg>
 	]
 )
 {
@@ -257,11 +230,18 @@ export function createContextor<Inputs extends Tuple<ContextorInput<Arg, any>>, 
 
 	const raw = new RawContextor(inputs, combiner, options?.isEqual);
 
-	const contextor = (arg: Arg) => raw.withArg(arg);
+	// arg type is defined in the various overloaded declarations
+	const contextor = (arg: unknown) => raw.withArg(arg);
 	contextor.raw = raw;
 
 	return contextor;
 }
+
+type ContextorParams<Inputs extends Tuple<any>, Arg, Out> = [
+	/* inputs */	...(Inputs | [Inputs]),
+	/* combiner */	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
+	/* options? */	...([ContextorOptions<Inputs, Arg>] | [])
+];
 
 function assertValidInputs(inputs: unknown[]): asserts inputs is Tuple<ContextorInput<unknown, unknown>>
 {
