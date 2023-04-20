@@ -126,7 +126,7 @@ test("JSON stabilised caching", () =>
 	const ContentContext = createContext<Content>({ id: 0, value: "" }, { contextId: "test" });
 	const isEqualJson = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
-	const Stabiliser = createContextor([ContentContext], ([value]) => value, { isEqual: isEqualJson });
+	const Stabiliser = createContextor([ContentContext], (value) => value, { isEqual: isEqualJson });
 
 	const generateContents = () => Array(5).fill(0).map((_, n) => ({ id: n, value: "x".repeat(n) }));
 
@@ -223,11 +223,11 @@ test("Nested contextors using isEqual", () =>
 	const isEqualBasedOnArg1 = ([, [arg1]]:		[unknown[], [boolean, boolean]]) => arg1;
 	const isEqualBasedOnArg2 = ([, [, arg2]]:	[unknown[], [boolean, boolean]]) => arg2;
 
-	const Contextor1 = createContextor([ContextA], ([context]) => ({ ...context }), { isEqual: isEqualBasedOnArg1 });
-	const Contextor2 = createContextor([ContextB], ([context]) => ({ ...context }), { isEqual: isEqualBasedOnArg2 });
+	const Contextor1 = createContextor([ContextA], (context) => ({ ...context }), { isEqual: isEqualBasedOnArg1 });
+	const Contextor2 = createContextor([ContextB], (context) => ({ ...context }), { isEqual: isEqualBasedOnArg2 });
 	const Contextor3 = createContextor(
 		[Contextor1, Contextor2],
-		([contextor1, contextor2]) => ({ ...contextor1, ...contextor2 })
+		(contextor1, contextor2) => ({ ...contextor1, ...contextor2 })
 	);
 
 	const renderCounts: Record<string, number> = {};

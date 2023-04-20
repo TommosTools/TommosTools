@@ -8,7 +8,7 @@ import { createContextor, useContextor } from "..";
 test("example", () =>
 {
 	const UserContext		= createContext({ id: 1, firstName: "John", lastName: "Smith" }, { contextId: "" });
-	const selectUserName	= createContextor([UserContext], ([user]) => `${user.firstName} ${user.lastName}`);
+	const selectUserName	= createContextor([UserContext], (user) => `${user.firstName} ${user.lastName}`);
 
 	const UserNameComponent = ({ testId } : { testId: string }) => (
 		<div data-testid={testId}>{ useContextor(selectUserName) }</div>
@@ -43,12 +43,12 @@ test("basic test", () =>
 
 	const selectGroupLookup = createContextor(
 		[GroupsContext],
-		([groups]) => Object.fromEntries(groups.map((group) => [group.id, group]))
+		(groups) => Object.fromEntries(groups.map((group) => [group.id, group]))
 	);
 
 	const selectUserSummary = createContextor(
 		[UserContext, selectGroupLookup],
-		([user, groupLookup]) => (
+		(user, groupLookup) => (
 			user && `${user.firstName} ${user.lastName} (${user.groupIds.map((id) => groupLookup[id].name).join(", ")})`
 		)
 	);
@@ -105,23 +105,24 @@ test("Example from docs", () =>
 		firstName: "Henry",
 		lastName: "Lemming",
 		teamIds: [1, 3],
-	});
+	}, { contextId: "users" });
 
 	const TeamsContext = createContext([
 		{ id: 1, name: "Builders" },
 		{ id: 2, name: "Climbers" },
 		{ id: 3, name: "Floaters" },
 		{ id: 4, name: "Miners" },
-	]);
+	], { contextId: "teams" });
 
 	const TeamsLookup = createContextor(
-		[TeamsContext],
-		([teams]) => Object.fromEntries(teams.map((team) => [team.id, team]))
+		TeamsContext,
+		(teams) => Object.fromEntries(teams.map((team) => [team.id, team]))
 	);
 
 	const UserSummary = createContextor(
-		[UserContext, TeamsLookup],
-		([user, teamsById]) => ({
+		UserContext,
+		TeamsLookup,
+		(user, teamsById) => ({
 			name: `${user.firstName} ${user.lastName}`,
 			teamNames: user.teamIds.map((id) => teamsById[id].name).join(", "),
 		})

@@ -14,14 +14,14 @@ import {
 } from "react";
 import { MemoSlotProvider } from "./memoslots";
 import {
+	ArgFreeCombiner,
 	ArglessContextorInput,
-	CombinerParamsAreEqual,
+	Combiner,
 	CompatibleArgFor,
 	Contextor,
 	ContextorInput,
 	ContextorOptions,
 	MandatoryArgBase,
-	OutputFor,
 	OutputsFor,
 	Simplify,
 	Tuple,
@@ -29,75 +29,6 @@ import {
 } from "./types";
 import { isContextor, RawContextor } from "./rawcontextor";
 import { isBoundContextor } from "./utils";
-
-export function createSimpleContextor<
-	Input extends ArglessContextorInput,
-	Arg extends MandatoryArgBase<[Input], Arg>,
-	Out=never
->(
-	input:		Input,
-	extractor:	(input: OutputFor<Input>, arg: Arg | undefined) => Out,
-	isEqual?:	CombinerParamsAreEqual<OutputFor<Input>, Arg>
-): (
-	[Out] extends [never]
-		?	Contextor<never, never>
-		:	Contextor<Simplify<Arg & CompatibleArgFor<[Input]>>, Out, true>
-);
-
-export function createSimpleContextor<
-	Input extends ArglessContextorInput,
-	Out
->(
-	input:		Input,
-	extractor:	(input: OutputFor<Input>, arg?: never) => Out,
-	isEqual?:	CombinerParamsAreEqual<OutputFor<Input>, unknown>
-): Contextor<unknown, Out, true>;
-
-export function createSimpleContextor<
-	Input extends ContextorInput<any, unknown>,
-	Arg extends MandatoryArgBase<[Input], Arg>,
-	Out
->(
-	input:		[CompatibleArgFor<[Input]>] extends [never] ? never : Input,
-	extractor:	(input: OutputFor<Input>, arg: Arg) => Out,
-	isEqual?:	CombinerParamsAreEqual<OutputFor<Input>, Arg>
-): Contextor<Simplify<Arg & CompatibleArgFor<[Input]>>, Out, false>;
-
-export function createSimpleContextor<
-	Input extends ContextorInput<any, unknown>,
-	Arg extends CompatibleArgFor<[Input]>,
-	Out
->(
-	input:		Input,
-	extractor:	[CompatibleArgFor<[Input]>] extends [never] ? never : Input,
-	isEqual?:	CombinerParamsAreEqual<OutputFor<Input>, Arg>
-): Contextor<Simplify<Arg & CompatibleArgFor<[Input]>>, Out, false>;
-
-export function createSimpleContextor<Input extends ContextorInput<Arg, unknown>, Arg, Out>(
-	input:		Input,
-	extractor:	(input: OutputFor<Input>, arg: Arg) => Out,
-	isEqual?:	CombinerParamsAreEqual<OutputFor<Input>, Arg>
-)
-{
-	type Output = OutputFor<Input>;
-
-	const wrappedInput = [input];
-
-	const wrappedCombiner = (inputs: [OutputFor<Input>], arg: Arg) => extractor(inputs[0], arg);
-
-	const wrappedIsEqual = isEqual && (
-		([[output1], arg1]: [[Output], Arg], [[output2], arg2]: [[Output], Arg]) => (
-			isEqual([output1, arg1], [output2, arg2])
-		)
-	);
-
-	const raw = new RawContextor(wrappedInput as any, wrappedCombiner as any, wrappedIsEqual as any);
-
-	const contextor = (arg: Arg) => raw.withArg(arg);
-	contextor.raw = raw;
-
-	return contextor;
-}
 
 //
 // Match combiners that produce a contextor with an OPTIONAL argument.
@@ -116,30 +47,36 @@ export function createContextor<
 	Out=never
 >(
 	inputs:		Inputs,
-	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg | undefined) => Out,
+	combiner:	Combiner<OutputsFor<Inputs>, Arg | undefined, Out>,
 	options?:	ContextorOptions<Inputs, Arg>
 ): (
 	[Out] extends [never]
-		?	Contextor<never, never>
+		?	Contextor<never, never> & { out: Out, arg: Arg, inputs: Inputs }
 		:	Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, true>
 );
+
+export function createContextor<
+	Inputs extends Tuple<ArglessContextorInput>,
+	Out
+>(
+	...params:
+	|	[ ...Inputs, ArgFreeCombiner<OutputsFor<Inputs>, Out> ]
+	|	[ ...Inputs, ArgFreeCombiner<OutputsFor<Inputs>, Out>, ContextorOptions<Inputs, unknown> ]
+): Contextor<unknown, Out, true>;
 
 export function createContextor<
 	Inputs extends Tuple<ArglessContextorInput>,
 	Arg extends MandatoryArgBase<Inputs, Arg>,
 	Out=never
 >(
-	...params: [
-		...inputs:	Inputs,
-		combiner:	(inputs: OutputsFor<Inputs>, arg: Arg | undefined) => Out,
-		options?:	ContextorOptions<Inputs, Arg>
-	]
+	...params:
+	|	[ ...Inputs, Combiner<OutputsFor<Inputs>, Arg | undefined, Out> ]
+	|	[ ...Inputs, Combiner<OutputsFor<Inputs>, Arg | undefined, Out>, ContextorOptions<Inputs, Arg> ]
 ): (
 	[Out] extends [never]
-		?	Contextor<never, never> & { case0a: void }
+		?	Contextor<never, never>
 		:	Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, true>
 );
-
 
 //
 // Special case of the above: produce a contextor with an OPTIONAL argument,
@@ -150,19 +87,8 @@ export function createContextor<
 	Out
 >(
 	inputs:		Inputs,
-	combiner:	(inputs: OutputsFor<Inputs>, arg?: never) => Out,
+	combiner:	ArgFreeCombiner<OutputsFor<Inputs>, Out>,
 	options?:	ContextorOptions<Inputs, unknown>
-): Contextor<unknown, Out, true>;
-
-export function createContextor<
-	Inputs extends Tuple<ArglessContextorInput>,
-	Out
->(
-	...params: [
-		...inputs:	Inputs,
-		combiner:	(inputs: OutputsFor<Inputs>, arg?: never) => Out,
-		options?:	ContextorOptions<Inputs, unknown>
-	]
 ): Contextor<unknown, Out, true>;
 
 //
@@ -177,7 +103,7 @@ export function createContextor<
 	Out
 >(
 	inputs:		[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
-	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
+	combiner:	Combiner<OutputsFor<Inputs>, Arg, Out>,
 	options?:	ContextorOptions<Inputs, Arg>
 ): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
 
@@ -186,9 +112,14 @@ export function createContextor<
 	Arg extends MandatoryArgBase<Inputs, Arg>,
 	Out
 >(
-	...params: [
+	...params:
+	|	[
 		...inputs:	[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
-		combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
+		combiner:	Combiner<OutputsFor<Inputs>, Arg, Out>
+	]
+	|	[
+		...inputs:	[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
+		combiner:	Combiner<OutputsFor<Inputs>, Arg, Out>,
 		options?:	ContextorOptions<Inputs, Arg>
 	]
 ): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
@@ -203,14 +134,14 @@ export function createContextor<
 	Out
 >(
 	inputs:		[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
-	combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
+	combiner:	Combiner<OutputsFor<Inputs>, Arg, Out>,
 	options?:	ContextorOptions<Inputs, Arg>
 ): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
 
 export function createContextor<Inputs extends Tuple<ContextorInput<Arg, any>>, Arg, Out>(
 	...params: [
 		...inputs:	(Inputs | [Inputs]),
-		combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
+		combiner:	Combiner<OutputsFor<Inputs>, Arg, Out>,
 		options?:	ContextorOptions<Inputs, Arg>
 	]
 )
@@ -237,22 +168,16 @@ export function createContextor<Inputs extends Tuple<ContextorInput<Arg, any>>, 
 	return contextor;
 }
 
-type ContextorParams<Inputs extends Tuple<any>, Arg, Out> = [
-	/* inputs */	...(Inputs | [Inputs]),
-	/* combiner */	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
-	/* options? */	...([ContextorOptions<Inputs, Arg>] | [])
-];
-
 function assertValidInputs(inputs: unknown[]): asserts inputs is Tuple<ContextorInput<unknown, unknown>>
 {
-	if (! inputs.every(input => isContext(input) || isContextor(input)))
+	if (!inputs.every((input) => isContext(input) || isContextor(input)))
 	{
 		const inputTypes = inputs.map(
-			(input) => typeof input === "function" ? input.toString() : typeof input
+			(input) => (typeof input === "function" ? input.toString() : typeof input)
 		).join(", ");
 
 		throw new Error(
-			`createContextor expects each input to be a Context or a Contextor, but received the following types: [${inputTypes}]`
+			`createContextor inputs must be Context or Contextor, but received the following types: [${inputTypes}]`
 		);
 	}
 }

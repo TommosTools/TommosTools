@@ -8,6 +8,7 @@ import {
 import { MemoSlotIterator, MemoSlotProvider } from "./memoslots";
 import type {
 	BoundContextor,
+	Combiner,
 	CombinerParamsAreEqual,
 	Contextor,
 	ContextorInput,
@@ -22,7 +23,7 @@ export class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Ar
 
 	constructor(
 		readonly inputs:	Inputs,
-		readonly combiner:	(inputs: OutputsFor<Inputs>, arg: Arg) => Out,
+		readonly combiner:	Combiner<OutputsFor<Inputs>, Arg, Out>,
 		readonly isEqual?:	CombinerParamsAreEqual<OutputsFor<Inputs>, Arg>
 	)
 	{
@@ -112,7 +113,7 @@ export class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Ar
 		)
 			return memoSlot.out as Out;
 
-		const out = this.combiner(inputValues, arg);
+		const out = this.combiner(...inputValues, arg);
 
 		if (memoSlot)
 		{
@@ -186,7 +187,7 @@ export class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Ar
 			return terminalCache.value;
 		}
 		// Recompute value, and store in cache
-		const value = this.combiner(inputValues, arg);
+		const value = this.combiner(...inputValues, arg);
 		cacheRef.set(this.TerminalCacheKey, { keys: inputValuesWithArg, value });
 		return value;
 	}
@@ -195,7 +196,10 @@ export class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Ar
 export function isContextor<Arg, Out>(value: unknown)
 	: value is Contextor<Arg, Out> | BoundContextor<Arg, Out>
 {
-	return (value instanceof RawContextor) || (value instanceof Array && value[0] instanceof RawContextor);
+	return (
+		(value instanceof Object && (value as { raw?: unknown }).raw instanceof RawContextor)
+	||	(value instanceof Array && value[0] instanceof RawContextor)
+	);
 }
 
 type TerminalCache<T> = { value: T, keys: unknown[] };
