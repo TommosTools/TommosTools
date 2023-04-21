@@ -51,7 +51,7 @@ export function createContextor<
 	options?:	ContextorOptions<Inputs, Arg>
 ): (
 	[Out] extends [never]
-		?	Contextor<never, never> & { out: Out, arg: Arg, inputs: Inputs }
+		?	Contextor<never, never>
 		:	Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, true>
 );
 
@@ -61,17 +61,15 @@ export function createContextor<
 >(
 	...params:
 	|	[ ...Inputs, ArgFreeCombiner<OutputsFor<Inputs>, Out> ]
-	|	[ ...Inputs, ArgFreeCombiner<OutputsFor<Inputs>, Out>, ContextorOptions<Inputs, unknown> ]
 ): Contextor<unknown, Out, true>;
 
 export function createContextor<
 	Inputs extends Tuple<ArglessContextorInput>,
 	Arg extends MandatoryArgBase<Inputs, Arg>,
-	Out=never
+	Out
 >(
 	...params:
 	|	[ ...Inputs, Combiner<OutputsFor<Inputs>, Arg | undefined, Out> ]
-	|	[ ...Inputs, Combiner<OutputsFor<Inputs>, Arg | undefined, Out>, ContextorOptions<Inputs, Arg> ]
 ): (
 	[Out] extends [never]
 		?	Contextor<never, never>
@@ -123,6 +121,7 @@ export function createContextor<
 		options?:	ContextorOptions<Inputs, Arg>
 	]
 ): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
+
 
 //
 // Catch-all: if arguments for the combiner and any inputs are incompatible then

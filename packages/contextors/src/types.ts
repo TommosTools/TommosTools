@@ -3,7 +3,7 @@
 import { Context } from "contexto";
 import { RawContextor } from "./rawcontextor";
 
-export type Tuple<T> = [] | [T, ...T[]];
+export type Tuple<T> = [T, ...T[]] | [];
 
 export type Contextor<Arg, Out, ArgIsOptional extends boolean = boolean> = (
 	(true extends ArgIsOptional
