@@ -179,19 +179,20 @@ test("Create contextor from contextor inputs with simple/no arguments", () =>
 
 	// Prevent creation of contextor that combines contextors with incompatible args
 	const CompatibleCombinedWithOwnIncompatibleArg = createContextor(
+		// @ts-expect-error -- Input1 and Input2 have arg `number`, which is incompatible with combiner arg `string`.
 		Input1, Input2,
-		// @ts- expect-error -- Input1 and Input2 have arg `number`, which is incompatible with combiner arg `string`
 		(input1, input2, salt: string) => (
 			expectString(salt).indexOf("x") + (expectNumber(input1) - expectNumber(input2))
 		)
 	);
+
+    // Separated input parameters form does not provide a type error here
 	expect(() => renderHook(
-		// @ts-expect-error -- CompatibleCombinedWithOwnIncompatibleArg is not a valid Contextor
 		() => useContextor(CompatibleCombinedWithOwnIncompatibleArg(2))
 	)).toThrow(ExpectedStringError);
 
 	const Input3 = createContextor(
-		[BaseInput],
+		BaseInput,
 		(baseInput, negate: boolean) => (
 			expectBoolean(negate) ? -expectNumber(baseInput) : expectNumber(baseInput)
 		)
@@ -199,19 +200,17 @@ test("Create contextor from contextor inputs with simple/no arguments", () =>
 
 	const IncompatibleCombined = createContextor(
 		// @ts-expect-error -- Input1 and Input3 have incompatible arguments
-		[Input1, Input3],
-		(input1, input3) => (
-			// @ts-expect-error -- inputs have unknown types because of invalid invocation
+		Input1, Input3,
+        // @ts-expect-error -- inputs have `any` type because of invalid invocation
+        (input1, input3) => (
 			expectNumber(input1) * expectNumber(input3)
 		)
 	);
 
 	expect(() => renderHook(
-		// @ts-expect-error -- IncompatibleCombined is not a valid Contextor
 		() => useContextor(IncompatibleCombined)
 	)).toThrow(ExpectedNumberError);
 	expect(() => renderHook(
-		// @ts-expect-error -- IncompatibleCombined is not a valid Contextor
 		() => useContextor(IncompatibleCombined(true))
 	)).toThrow(ExpectedNumberError);
 });
@@ -219,19 +218,19 @@ test("Create contextor from contextor inputs with simple/no arguments", () =>
 test("Create contextor from contextor inputs with structured arguments", () =>
 {
 	const Input1 = createContextor(
-		[Context1],
+		Context1,
 		(context1, arg: { numericArg: number }) => (
 			expectNumber(context1.contextValue) + expectNumber(arg.numericArg)
 		)
 	);
 	const Input2 = createContextor(
-		[Context1],
+		Context1,
 		(context1, arg: { stringArg: string }) => (
 			expectNumber(context1.contextValue) * expectString(arg.stringArg).length
 		)
 	);
 	const Combined = createContextor(
-		[Input1, Input2],
+		Input1, Input2,
 		(input1, input2) => (
 			`${expectNumber(input1)}/${expectNumber(input2)}`
 		)
@@ -262,7 +261,7 @@ test("Create contextor from contextor inputs with structured arguments", () =>
 
 	// This should work -- { numericArg: number, stringArg: string } should satisfy both
 	const CompatibleArg = createContextor(
-		[Input1],
+		Input1,
 		(input1, arg: { stringArg: string }) => (
 			`${expectNumber(input1)}/${expectString(arg.stringArg)}`
 		)
@@ -274,8 +273,9 @@ test("Create contextor from contextor inputs with structured arguments", () =>
 
 	// IncompatibleArg
 	createContextor(
-		[Input1],
 		// @ts-expect-error -- { numericArg: number } is incompatible with { numericArg: string }
+		Input1,
+		// @ts-expect-error -- input1 is unknown
 		(input1, arg: { numericArg: string }) => input1 + arg.numericArg.length
 	);
 });
@@ -284,7 +284,7 @@ test("Optional arg combinations", () =>
 {
 	// Create contextor with optional structured arg
 	const Input1 = createContextor(
-		[Context1],
+		Context1,
 		(context1, arg: { stringArg: string } | undefined) => (
 			expectNumber(context1.contextValue) * (arg ? expectString(arg.stringArg).length : 13)
 		)
@@ -302,7 +302,7 @@ test("Optional arg combinations", () =>
 
 	// Create contextor with required structured arg
 	const Input2 = createContextor(
-		[Context1],
+		Context1,
 		(context1, arg: { numericArg: number }) => (
 			expectNumber(context1.contextValue) + expectNumber(expectObject(arg).numericArg)
 		)
@@ -321,7 +321,7 @@ test("Optional arg combinations", () =>
 
 	// Can combine contextors, but the arg of the resulting contextor is MANDATORY
 	const Combined12 = createContextor(
-		[Input1, Input2],
+		Input1, Input2,
 		(input1, input2) => (
 			`${expectNumber(input1)}/${expectNumber(input2)}`
 		)

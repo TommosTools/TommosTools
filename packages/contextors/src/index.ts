@@ -59,22 +59,22 @@ export function createContextor<
 	Inputs extends Tuple<ArglessContextorInput>,
 	Out
 >(
-	...params:
-	|	[ ...Inputs, ArgFreeCombiner<OutputsFor<Inputs>, Out> ]
+	...params: [ ...Inputs, ArgFreeCombiner<OutputsFor<Inputs>, Out> ]
 ): Contextor<unknown, Out, true>;
+
 
 export function createContextor<
 	Inputs extends Tuple<ArglessContextorInput>,
 	Arg extends MandatoryArgBase<Inputs, Arg>,
 	Out
 >(
-	...params:
-	|	[ ...Inputs, Combiner<OutputsFor<Inputs>, Arg | undefined, Out> ]
+	...params: [ ...Inputs, Combiner<OutputsFor<Inputs>, Arg | undefined, Out> ]
 ): (
 	[Out] extends [never]
 		?	Contextor<never, never>
-		:	Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, true>
+		:	Contextor<Simplify<Arg & {} & CompatibleArgFor<Inputs>>, Out, true>
 );
+
 
 //
 // Special case of the above: produce a contextor with an OPTIONAL argument,

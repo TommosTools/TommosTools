@@ -39,10 +39,10 @@ export type OutputsFor<Inputs extends Tuple<ContextorInput<any, unknown>>> = Inp
 } : never;
 
 export type ArgFreeCombiner<Inputs extends Tuple<unknown>, Out> =
-	(...params: [...inputs: Inputs, arg?: never]) => Out;
+	((...params: [...inputs: Inputs, arg?: never]) => Out) & { __optional?: never, __required?: never };
 
 export type Combiner<Inputs extends Tuple<unknown>, Arg, Out> =
-	(...params: [...inputs: Inputs, arg: Arg]) => Out;
+	((...params: [...inputs: Inputs, arg: Arg]) => Out) & { __optional?: never, __required?: never };
 
 export type CombinerParamsAreEqual<T, Arg> =
 	(params: [T, Arg], otherParams: [T, Arg]) => boolean;
