@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Context } from "contexto";
+import { Context, CONTEXTO_KEY } from "contexto";
 import { RawContextor } from "./rawcontextor";
 
 export type Tuple<T> = [T, ...T[]] | [];
@@ -38,11 +38,11 @@ export type OutputsFor<Inputs extends Tuple<ContextorInput<any, unknown>>> = Inp
 	)
 } : never;
 
-export type ArgFreeCombiner<Inputs extends Tuple<unknown>, Out> =
-	((...params: [...inputs: Inputs, arg?: never]) => Out) & { __optional?: never, __required?: never };
+export type ArgFreeCombiner<Inputs extends Tuple<ContextorInput<any, unknown>>, Out> =
+	((...params: [...inputs: OutputsFor<Inputs>, arg?: never]) => Out) & { raw?: never, [CONTEXTO_KEY]?: never };
 
-export type Combiner<Inputs extends Tuple<unknown>, Arg, Out> =
-	((...params: [...inputs: Inputs, arg: Arg]) => Out) & { __optional?: never, __required?: never };
+export type Combiner<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg, Out> =
+	((...params: [...inputs: OutputsFor<Inputs>, arg: Arg]) => Out);
 
 export type CombinerParamsAreEqual<T, Arg> =
 	(params: [T, Arg], otherParams: [T, Arg]) => boolean;

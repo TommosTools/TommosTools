@@ -47,7 +47,7 @@ export function createContextor<
 	Out=never
 >(
 	inputs:		Inputs,
-	combiner:	Combiner<OutputsFor<Inputs>, Arg | undefined, Out>,
+	combiner:	Combiner<Inputs, Arg | undefined, Out>,
 	options?:	ContextorOptions<Inputs, Arg>
 ): (
 	[Out] extends [never]
@@ -57,23 +57,18 @@ export function createContextor<
 
 export function createContextor<
 	Inputs extends Tuple<ArglessContextorInput>,
-	Out
->(
-	...params: [ ...Inputs, ArgFreeCombiner<OutputsFor<Inputs>, Out> ]
-): Contextor<unknown, Out, true>;
-
-
-export function createContextor<
-	Inputs extends Tuple<ArglessContextorInput>,
 	Arg extends MandatoryArgBase<Inputs, Arg>,
 	Out
 >(
-	...params: [ ...Inputs, Combiner<OutputsFor<Inputs>, Arg | undefined, Out> ]
-): (
-	[Out] extends [never]
-		?	Contextor<never, never>
-		:	Contextor<Simplify<Arg & {} & CompatibleArgFor<Inputs>>, Out, true>
-);
+	...params: [ ...Inputs, Combiner<Inputs, Arg | undefined, Out> ]
+): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, true>;
+
+export function createContextor<
+	Inputs extends Tuple<ArglessContextorInput>,
+	Out
+>(
+	...params: [ ...Inputs, ArgFreeCombiner<Inputs, Out> ]
+): Contextor<unknown, Out, true>;
 
 
 //
@@ -85,7 +80,7 @@ export function createContextor<
 	Out
 >(
 	inputs:		Inputs,
-	combiner:	ArgFreeCombiner<OutputsFor<Inputs>, Out>,
+	combiner:	ArgFreeCombiner<Inputs, Out>,
 	options?:	ContextorOptions<Inputs, unknown>
 ): Contextor<unknown, Out, true>;
 
@@ -101,7 +96,7 @@ export function createContextor<
 	Out
 >(
 	inputs:		[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
-	combiner:	Combiner<OutputsFor<Inputs>, Arg, Out>,
+	combiner:	Combiner<Inputs, Arg, Out>,
 	options?:	ContextorOptions<Inputs, Arg>
 ): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
 
@@ -110,15 +105,9 @@ export function createContextor<
 	Arg extends MandatoryArgBase<Inputs, Arg>,
 	Out
 >(
-	...params:
-	|	[
+	...params: [
 		...inputs:	[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
-		combiner:	Combiner<OutputsFor<Inputs>, Arg, Out>
-	]
-	|	[
-		...inputs:	[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
-		combiner:	Combiner<OutputsFor<Inputs>, Arg, Out>,
-		options?:	ContextorOptions<Inputs, Arg>
+		combiner:	Combiner<Inputs, Arg, Out>
 	]
 ): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
 
@@ -133,7 +122,7 @@ export function createContextor<
 	Out
 >(
 	inputs:		[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
-	combiner:	Combiner<OutputsFor<Inputs>, Arg, Out>,
+	combiner:	Combiner<Inputs, Arg, Out>,
 	options?:	ContextorOptions<Inputs, Arg>
 ): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
 

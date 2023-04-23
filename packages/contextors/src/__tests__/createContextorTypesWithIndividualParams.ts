@@ -283,6 +283,8 @@ test("Create contextor from contextor inputs with structured arguments", () =>
 test("Optional arg combinations", () =>
 {
 	// Create contextor with optional structured arg
+
+// FIXME TODO: optional arg type is not detected -- matches the argfreecombiner instead
 	const Input1 = createContextor(
 		Context1,
 		(context1, arg: { stringArg: string } | undefined) => (
