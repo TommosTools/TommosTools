@@ -41,6 +41,7 @@ import { isBoundContextor } from "./utils";
 // In this case TS cannot infer `Out` so we default it to `never`, which results in a return type
 // of `Contextor<never, never>`, which will be flagged as an error if it is used elsewhere.
 //
+
 export function createContextor<
 	Inputs extends Tuple<ArglessContextorInput>,
 	Arg extends MandatoryArgBase<Inputs, Arg>,
@@ -57,18 +58,18 @@ export function createContextor<
 
 export function createContextor<
 	Inputs extends Tuple<ArglessContextorInput>,
+	Out
+>(
+	...params: [ ...Inputs, ArgFreeCombiner<Inputs, Out> ]
+): Contextor<unknown, Out, true>;
+
+export function createContextor<
+	Inputs extends Tuple<ArglessContextorInput>,
 	Arg extends MandatoryArgBase<Inputs, Arg>,
 	Out
 >(
 	...params: [ ...Inputs, Combiner<Inputs, Arg | undefined, Out> ]
 ): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, true>;
-
-export function createContextor<
-	Inputs extends Tuple<ArglessContextorInput>,
-	Out
->(
-	...params: [ ...Inputs, ArgFreeCombiner<Inputs, Out> ]
-): Contextor<unknown, Out, true>;
 
 
 //

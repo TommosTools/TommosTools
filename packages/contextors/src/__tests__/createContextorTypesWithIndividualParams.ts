@@ -119,6 +119,8 @@ test("Create contextors with no inputs", () =>
 test("Create contextor from contextor inputs with simple/no arguments", () =>
 {
 	// Building block: a contextor with a single context input and no arg
+
+// TODO: should be Contextor<unknown, number, true>
 	const BaseInput = createContextor(Context1, (context1) => context1.contextValue);
 
 	// Building block: a contextor with a single contextor input and no arg

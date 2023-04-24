@@ -39,7 +39,7 @@ export type OutputsFor<Inputs extends Tuple<ContextorInput<any, unknown>>> = Inp
 } : never;
 
 export type ArgFreeCombiner<Inputs extends Tuple<ContextorInput<any, unknown>>, Out> =
-	((...params: [...inputs: OutputsFor<Inputs>, arg?: never]) => Out) & { raw?: never, [CONTEXTO_KEY]?: never };
+	((...params: [...inputs: OutputsFor<Inputs>, arg?: never]) => Out) // & { raw?: never, [CONTEXTO_KEY]?: never };
 
 export type Combiner<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg, Out> =
 	((...params: [...inputs: OutputsFor<Inputs>, arg: Arg]) => Out);
