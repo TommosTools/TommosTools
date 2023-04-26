@@ -103,11 +103,31 @@ export function createContextor<
 
 export function createContextor<
 	Input0 extends ArglessContextorInput,
+	Input1 extends ArglessContextorInput,
+	Out
+>(
+	input0: Input0, input1: Input1,
+	combiner: ArgFreeCombiner<[Input0, Input1], Out>)
+: Contextor<unknown, Out, true>;
+
+
+
+export function createContextor<
+	Input0 extends ArglessContextorInput,
+	Input1 extends ArglessContextorInput,
+	Arg extends MandatoryArgBase<[Input0, Input1], Arg>,
+	Out
+>(
+	input0: Input0, input1: Input1,
+	combiner: Combiner<[Input0, Input1], Arg | undefined, Out>)
+: Contextor<Simplify<Arg & CompatibleArgFor<[Input0, Input1]>>, Out, true>;
+
+export function createContextor<
+	Input0 extends ArglessContextorInput,
 	Arg extends MandatoryArgBase<[Input0], Arg>,
 	Out
 >(input0: Input0, combiner: Combiner<[Input0], Arg | undefined, Out>)
 : Contextor<Simplify<Arg & CompatibleArgFor<[Input0]>>, Out, true>;
-
 
 
 

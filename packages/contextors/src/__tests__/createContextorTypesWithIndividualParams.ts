@@ -3,6 +3,7 @@
 import { renderHook } from "@testing-library/react";
 import { createContext } from "contexto";
 import { createContextor, useContextor } from "..";
+import { ArglessContextorInput } from "../types";
 
 const Context1 = createContext({ contextValue: 42 }, { contextId: "Context1" });
 
@@ -350,14 +351,14 @@ test("Optional arg combinations", () =>
 
 	// Different input with optional and compatible arg
 	const Input3 = createContextor(
-		[Context1],
+		Context1,
 		(context1, arg: { numericArg: number } | undefined) => (
 			expectNumber(context1.contextValue) * (arg ? expectNumber(arg.numericArg) : 23)
 		)
 	);
 
 	const Combined13 = createContextor(
-		[Input1, Input3],
+		Input1, Input3,
 		(input1, input3, arg) => (
 			input1 + input3 + (arg ? expectNumber(arg.numericArg) + expectString(arg.stringArg).length : 0)
 		)
