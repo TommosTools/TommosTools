@@ -509,104 +509,21 @@ test("Can't supply a raw context to useContextor", () =>
 	)).toThrow(TypeError);
 });
 
-test("createSimpleContextor with context input and mandatory argument", () =>
-{
-	const Contextor = createContextor(
-		Context1,
-		(context1, arg: { numericArg: number }) => context1.contextValue + arg.numericArg
-	);
-
-	expect(() => renderHook(
-		// @ts-expect-error -- contextor requires an argument, so the bare call is forbidden
-		() => useContextor(Contextor)
-	)).toThrow(TypeError);
-
-	expect(renderHook(
-		() => useContextor(Contextor({ numericArg: 5 }))
-	).result.current).toBe(42 + 5);
-});
-
-test("Non-array form of createContextor with single context input and optional argument", () =>
-{
-	const Contextor = createContextor(
-		Context1,
-		(context1, arg: { stringArg: string } | undefined) => (
-			String(expectNumber(context1.contextValue)) + expectString(arg?.stringArg ?? "")
-		)
-	);
-
-	expect(renderHook(
-		() => useContextor(Contextor)
-	).result.current).toBe("42");
-
-	expect(renderHook(
-		() => useContextor(Contextor())				// Equivalent to bare call
-	).result.current).toBe("42");
-
-	expect(renderHook(
-		() => useContextor(Contextor(undefined))	// Equivalent to bare call
-	).result.current).toBe("42");
-
-	expect(renderHook(
-		() => useContextor(Contextor({ stringArg: "!" }))
-	).result.current).toBe("42!");
-});
-
-test("createSimpleContextor with single context input and no argument", () =>
-{
-	const ArglessContextor = createContextor(
-		Context1,
-		(context1) => expectNumber(context1.contextValue) * 2
-	);
-
-	expect(renderHook(
-		() => useContextor(ArglessContextor)
-	).result.current).toBe(42 * 2);
-
-	expect(renderHook(
-		() => useContextor(ArglessContextor())		// Equivalent to bare call
-	).result.current).toBe(42 * 2);
-
-	expect(renderHook(
-		() => useContextor(ArglessContextor(undefined))	// equivalent to bare call
-	).result.current).toBe(42 * 2);
-});
-
-/*
-test("Combine contextors created with createSimpleContextor", () =>
-{
-	const Input1 = createContextor(Context1, (context1) => `(${context1.contextValue}`);
-
-	const Input2 = createContextor(
-		[Context1],
-		(context1, arg: string) => `(${context1.contextValue}, ${expectString(arg)})`
-	);
-
-	const CombinedContextor = createContextor(Input1, Input2, (input1, input2) => `(${input1}, ${input2})`);
-
-	expect(() => renderHook(
-		// @ts-expect-error -- arg is required
-		() => useContextor(CombinedContextor)
-	)).toThrow(ExpectedStringError);
-
-	expect(renderHook(
-		() => useContextor(CombinedContextor("xxx"))
-	).result.current).toBe("((42, (42, xxx))");
-});
-*/
-
 test("test indexable arg merging with keyed arg", () =>
 {
 	const Input1 = createContextor(
-		Context1,
+		[Context1],
 		(context1, arg: { [k: string]: number }) => `(${context1.contextValue}, ${JSON.stringify(arg)})`
 	);
 	const Input2 = createContextor(
-		Context1,
+		[Context1],
 		(context1, arg: { foo: number }) => `(${context1.contextValue}, ${expectNumber(arg.foo)})`
 	);
 
-	const CombinedContextor = createContextor(Input1, Input2, (input1, input2) => `(${input1}, ${input2})`);
+	const CombinedContextor = createContextor(
+		[Input1, Input2],
+		(input1, input2) => `(${input1}, ${input2})`
+	);
 
 	expect(() => renderHook(
 		// @ts-expect-error -- arg is required

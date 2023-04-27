@@ -30,41 +30,6 @@ import {
 import { isContextor, RawContextor } from "./rawcontextor";
 import { isBoundContextor } from "./utils";
 
-
-
-/*
-
-export function createContextor<
-	Input0 extends ArglessContextorInput,
-	Input1 extends ArglessContextorInput,
-	Out
->(
-	input0: Input0,
-	input1: Input1,
-	combiner: ArgFreeCombiner<[Input0, Input1], Out>
-): Contextor<unknown, Out, true>;
-export function createContextor<
-	Input0 extends ArglessContextorInput,
-	Out
->(
-	input0: Input0,
-	combiner: ArgFreeCombiner<[Input0], Out>
-): Contextor<unknown, Out, true>;
-export function createContextor<Out>(combiner: ArgFreeCombiner<[], Out>): Contextor<unknown, Out, true>;
-
-export function createContextor<
-	Inputs extends Tuple<ArglessContextorInput>,
-	Arg extends MandatoryArgBase<Inputs, Arg>,
-	Out
->(
-	...params: [ ...Inputs, Combiner<Inputs, Arg | undefined, Out> ]
-): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, true>;
-
-*/
-
-
-
-
 //
 // Match combiners that produce a contextor with an OPTIONAL argument.
 // Contextors with an optional argument can't use an input with a mandatory argument;
@@ -90,54 +55,6 @@ export function createContextor<
 		?	Contextor<never, never>
 		:	Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, true>
 );
-
-/* OG 
-export function createContextor<
-	Inputs extends Tuple<ArglessContextorInput>,
-	Arg extends MandatoryArgBase<Inputs, Arg>,
-	Out
->(
-	...params: [ ...Inputs, Combiner<Inputs, Arg | undefined, Out> ]
-): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, true>;
-*/
-
-export function createContextor<
-	Input0 extends ArglessContextorInput,
-	Input1 extends ArglessContextorInput,
-	Out
->(
-	input0: Input0, input1: Input1,
-	combiner: ArgFreeCombiner<[Input0, Input1], Out>)
-: Contextor<unknown, Out, true>;
-
-
-
-export function createContextor<
-	Input0 extends ArglessContextorInput,
-	Input1 extends ArglessContextorInput,
-	Arg extends MandatoryArgBase<[Input0, Input1], Arg>,
-	Out
->(
-	input0: Input0, input1: Input1,
-	combiner: Combiner<[Input0, Input1], Arg | undefined, Out>)
-: Contextor<Simplify<Arg & CompatibleArgFor<[Input0, Input1]>>, Out, true>;
-
-export function createContextor<
-	Input0 extends ArglessContextorInput,
-	Arg extends MandatoryArgBase<[Input0], Arg>,
-	Out
->(input0: Input0, combiner: Combiner<[Input0], Arg | undefined, Out>)
-: Contextor<Simplify<Arg & CompatibleArgFor<[Input0]>>, Out, true>;
-
-
-
-export function createContextor<
-	Inputs extends Tuple<ArglessContextorInput>,
-	Out
->(
-	...params: [ ...Inputs, ArgFreeCombiner<Inputs, Out> ]
-): Contextor<unknown, Out, true>;
-
 
 //
 // Special case of the above: produce a contextor with an OPTIONAL argument,
@@ -167,18 +84,6 @@ export function createContextor<
 	combiner:	Combiner<Inputs, Arg, Out>,
 	options?:	ContextorOptions<Inputs, Arg>
 ): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
-
-export function createContextor<
-	Inputs extends Tuple<ContextorInput<any, unknown>>,
-	Arg extends MandatoryArgBase<Inputs, Arg>,
-	Out
->(
-	...params: [
-		...inputs:	[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
-		combiner:	Combiner<Inputs, Arg, Out>
-	]
-): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
-
 
 //
 // Catch-all: if arguments for the combiner and any inputs are incompatible then

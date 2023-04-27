@@ -115,13 +115,12 @@ test("Example from docs", () =>
 	], { contextId: "teams" });
 
 	const TeamsLookup = createContextor(
-		TeamsContext,
+		[TeamsContext],
 		(teams) => Object.fromEntries(teams.map((team) => [team.id, team]))
 	);
 
 	const UserSummary = createContextor(
-		UserContext,
-		TeamsLookup,
+		[UserContext, TeamsLookup],
 		(user, teamsById) => ({
 			name: `${user.firstName} ${user.lastName}`,
 			teamNames: user.teamIds.map((id) => teamsById[id].name).join(", "),

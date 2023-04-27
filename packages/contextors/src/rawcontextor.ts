@@ -23,7 +23,7 @@ export class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Ar
 
 	constructor(
 		readonly inputs:	Inputs,
-		readonly combiner:	Combiner<OutputsFor<Inputs>, Arg, Out>,
+		readonly combiner:	Combiner<Inputs, Arg, Out>,
 		readonly isEqual?:	CombinerParamsAreEqual<OutputsFor<Inputs>, Arg>
 	)
 	{
