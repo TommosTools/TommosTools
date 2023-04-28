@@ -534,3 +534,19 @@ test("test indexable arg merging with keyed arg", () =>
 		() => useContextor(CombinedContextor({ foo: 23 }))
 	).result.current).toBe("((42, {\"foo\":23}), (42, 23))");
 });
+
+test("Combiner using rest parameter", () =>
+{
+	const ContextA = createContext("a", { contextId: "a" });
+	const ContextB = createContext("b", { contextId: "b" });
+	const ContextC = createContext("c", { contextId: "c" });
+
+	const Contextor = createContextor(
+		[ContextA, ContextB, ContextC],
+		(...args) => `${expectString(args[0])}:${expectString(args[1])}:${expectString(args[2])}`
+	);
+
+	expect(renderHook(
+		() => useContextor(Contextor)
+	).result.current).toBe("a:b:c");
+});
