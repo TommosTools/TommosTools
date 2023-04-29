@@ -1,13 +1,20 @@
 contextors
 ==========
 
-A library for creating memoised \"context selector\" functions
+A library for creating memoised \"context selector\" functions.
+
+ - **Contextors combine the values of multiple contexts** to compute a single value
+ which is updated when any of its input values change.
+ - **Contextors are efficient and stable.** A contextor will always produce the same
+ output given the same input values.
+ - **Contextors are composable.** They can be used as inputs to other contextors.
+ - **Contextors can be parameterized.** The combining function can accept an extra
+ parameter alongside the other input values.
 
 ## Basic Usage
 
     # Create some Contexts
     const UserContext  = contexto.createContext({
-      id:        1,
       firstName: "Henry",
       lastName:  "Lemming",
       teamIds:   [1, 3],
@@ -38,7 +45,7 @@ A library for creating memoised \"context selector\" functions
 
     # The useContextor hook subscribes to the local values of all contexts
     # required to evaluate the given Contextor
-    const UserNameComponent = () => {
+    function UserNameComponent() {
       const { name, teamNames } = useContextor(UserSummary);
       return <div><b>{name}</b> ({ teamNames || "no teams" })</div>;
     }
