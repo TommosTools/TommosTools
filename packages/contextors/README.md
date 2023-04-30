@@ -8,8 +8,8 @@ A library for creating memoised \"context selector\" functions.
  - **Contextors are efficient and stable.** A contextor will always produce the same
  output given the same input values.
  - **Contextors are composable.** They can be used as inputs to other contextors.
- - **Contextors can be parameterized.** The combining function can accept an extra
- parameter alongside the other input values.
+ - **Contextors can be parameterized.** A contextor's combining function can accept an
+ extra parameter alongside the context-dependent input values.
 
 ## Basic Usage
 
@@ -53,3 +53,11 @@ A library for creating memoised \"context selector\" functions.
 ## Advanced Usage
 
 Contextors can be created 
+
+## Parameterized contextors
+
+## Caching
+
+memoized vs "omni-cache"
+
+## Contextors vs selectors
