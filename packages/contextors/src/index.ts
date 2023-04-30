@@ -25,10 +25,8 @@ import {
 	OutputsFor,
 	Simplify,
 	Tuple,
-	UseContextorInput,
 } from "./types";
 import { isContextor, RawContextor } from "./rawcontextor";
-import { isBoundContextor } from "./utils";
 
 //
 // Match combiners that produce a contextor with an OPTIONAL argument.
@@ -120,13 +118,7 @@ export function createContextor<Inputs extends Tuple<ContextorInput<Arg, any>>, 
 
 	assertValidInputs(inputs);
 
-	const raw = new RawContextor(inputs, combiner, options?.isEqual);
-
-	// arg type is defined in the various overloaded declarations
-	const contextor = (arg: unknown) => raw.withArg(arg);
-	contextor.raw = raw;
-
-	return contextor;
+	return new RawContextor(inputs, combiner, options?.isEqual);
 }
 
 function assertValidInputs(inputs: unknown[]): asserts inputs is Tuple<ContextorInput<unknown, unknown>>
@@ -155,7 +147,7 @@ function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>):
 			unsubscribe?.();
 			return { value, subscribe };
 		case "setContextor":
-			return { ...subscribe(action.contextor), subscribe };
+			return { ...subscribe(action.contextor, action.arg), subscribe };
 		default:
 			return state;
 	}
@@ -169,7 +161,9 @@ function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>):
 //
 // @returns - The latest value of the contextor within the calling component.
 //
-export function useContextor<Arg, Out>(contextor: UseContextorInput<Arg, Out>): Out
+export function useContextor<Arg, Out>(contextor: Contextor<Arg, Out, true>, arg?: Arg): Out;
+export function useContextor<Arg, Out>(contextor: Contextor<Arg, Out, false>, arg: Arg): Out;
+export function useContextor<Arg, Out>(contextor: Contextor<Arg, Out>, arg?: Arg): Out
 {
 	const subscriber		= useSubscriber();
 	const [memoProvider]	= useState(() => new MemoSlotProvider());
@@ -181,18 +175,13 @@ export function useContextor<Arg, Out>(contextor: UseContextorInput<Arg, Out>): 
 	// is ever used (in the reducer initialisation).
 	//
 	const subscribe = (
-		(newContextor: UseContextorInput<Arg, Out>): State<Arg, Out> =>
+		(newContextor: Contextor<Arg, Out>): State<Arg, Out> =>
 		{
-			const [rawContextor, arg] = (
-				isBoundContextor(newContextor)
-					?	newContextor
-					:	newContextor(undefined)	// Arg extends undefined -- allow unbound contextor
-			);
 			const [initialValue, unsubscribe] = (
-				rawContextor.subscribe(
+				newContextor.subscribe(
 					subscriber,
 					(updatedValue: Out) => dispatch({ type: "setValue", value: updatedValue }),
-					arg,	// nb: arg may be undefined here but only if Arg extends undefined
+					(arg as Arg),	// nb: arg may be undefined here but only if Arg extends undefined
 					{ memoProvider }
 				)
 			);
@@ -207,15 +196,13 @@ export function useContextor<Arg, Out>(contextor: UseContextorInput<Arg, Out>): 
 		subscribe
 	);
 
-	const [rawContextor, arg] = isBoundContextor(contextor) ? contextor : [contextor, undefined];
-
 	useEffectOnUpdate(
 		() =>
 		{
-			dispatch({ type: "setContextor", contextor });
+			dispatch({ type: "setContextor", contextor, arg: (arg as Arg) });
 			return () => dispatch({ type: "unsetContextor" });
 		},
-		[dispatch, rawContextor, arg]
+		[dispatch, contextor, arg]
 	);
 
 	return currentValue;
@@ -224,15 +211,15 @@ export function useContextor<Arg, Out>(contextor: UseContextorInput<Arg, Out>): 
 type State<Arg, Out> = {
 	value:			Out;
 	unsubscribe?:	Unsubscriber;
-	subscribe:		(contextor: UseContextorInput<Arg, Out>) => State<Arg, Out>
+	subscribe:		(contextor: Contextor<Arg, Out>, arg: Arg) => State<Arg, Out>
 };
 type Action<Arg, Out> = (
 	| { type: "setValue", value: Out }
-	| { type: "setContextor", contextor: UseContextorInput<Arg, Out> }
+	| { type: "setContextor", contextor: Contextor<Arg, Out>, arg: Arg }
 	| { type: "unsetContextor" }
 );
 
-function useEffectOnUpdate(effect: () => (() => void), deps: unknown[])
+function useEffectOnUpdate(effect: () => (void | (() => void)), deps: unknown[])
 {
 	const hasMounted = useRef(false);
 

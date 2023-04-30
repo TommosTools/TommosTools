@@ -235,7 +235,7 @@ test("Nested contextors using isEqual", () =>
 	const Consumer = memo(({ id, equal1, equal2 }: { id: string, equal1: boolean, equal2: boolean }) =>
 	{
 		const equal = useMemo(() => [equal1, equal2], [equal1, equal2]) as [boolean, boolean];
-		const value = useContextor(Contextor3(equal));
+		const value = useContextor(Contextor3, equal);
 
 		useEffect(
 			() =>

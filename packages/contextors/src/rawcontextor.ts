@@ -7,7 +7,6 @@ import {
 } from "contexto";
 import { MemoSlotIterator, MemoSlotProvider } from "./memoslots";
 import type {
-	BoundContextor,
 	Combiner,
 	CombinerParamsAreEqual,
 	Contextor,
@@ -15,7 +14,6 @@ import type {
 	OutputsFor,
 	Tuple,
 } from "./types";
-import { isBoundContextor } from "./utils";
 
 export class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
 {
@@ -34,18 +32,8 @@ export class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Ar
 			if (isContext(input))
 				this.contexts.add(input);
 			else /* if (isContextor(input)) */
-			{
-				if (isBoundContextor(input))
-					input[0].contexts.forEach((context) => this.contexts.add(context));
-				else
-					input.raw.contexts.forEach((context) => this.contexts.add(context));
-			}
+				input.contexts.forEach((context) => this.contexts.add(context));
 		}
-	}
-
-	withArg(arg: Arg): BoundContextor<Arg, Out>
-	{
-		return [this, arg];
 	}
 
 	subscribe(
@@ -75,9 +63,7 @@ export class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Ar
 					const [initialValue, unsubscribe] = (
 						isContext(input)
 							?	subscriber(input, updateValue)
-							:	isBoundContextor(input)
-								?	input[0].subscribe(subscriber, updateValue, arg, opts)
-								:	input.raw.subscribe(subscriber, updateValue, arg, opts)
+							:	input.subscribe(subscriber, updateValue, arg, opts)
 					);
 
 					unsubscribers.push(unsubscribe);
@@ -194,12 +180,9 @@ export class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Ar
 }
 
 export function isContextor<Arg, Out>(value: unknown)
-	: value is Contextor<Arg, Out> | BoundContextor<Arg, Out>
+	: value is Contextor<Arg, Out>
 {
-	return (
-		(value instanceof Object && (value as { raw?: unknown }).raw instanceof RawContextor)
-	||	(value instanceof Array && value[0] instanceof RawContextor)
-	);
+	return (value instanceof RawContextor);
 }
 
 type TerminalCache<T> = { value: T, keys: unknown[] };
