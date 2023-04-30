@@ -157,7 +157,10 @@ function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>):
 // Consume and subscribe to updates of a contextor's value in a function component.
 //
 // @param contextor
-// A Contextor previously created with `createContextor`, with bound argument as required.
+// A Contextor previously created with `createContextor`
+//
+// @param arg
+// An argument to apply to the contextor, as allowed/required.
 //
 // @returns - The latest value of the contextor within the calling component.
 //

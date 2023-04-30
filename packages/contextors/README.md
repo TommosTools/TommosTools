@@ -50,11 +50,51 @@ A library for creating memoised \"context selector\" functions.
       return <div><b>{name}</b> ({ teamNames || "no teams" })</div>;
     }
 
+## Parameterized contextors
+
+A contextor can accept an extra argument in its combining function.
+
+    function BlogProvider({ children }) {
+      const { data: posts, isLoading } = useQuery("posts", () =>
+        fetch("https://jsonplaceholder.typicode.com/posts").then((res) => res.json())
+      );
+
+      if (isLoading)
+        return "Loading ...";
+      else
+        return <BlogContext.Provider value={posts} children={children} />;
+    }
+
+    function filterPosts(posts: Post[], filterString: string) {
+      return posts.filter((post) => post.title.includes(filterString));
+    }
+
+    const BlogFilter = createContextor(
+      [BlogContext],
+      ({ posts }, searchTerm) => ({
+        posts: posts.filter(({ title }) => title.includes(searchTerm))
+      })
+    );
+
+    const BlogPostList = () => {
+      const [searchTerm, setSearchTerm] = useState("");
+      const filteredPosts = useContextor(BlogFilter, searchTerm);
+
+      return (
+        <div>
+          <input onChange={ e => setSearchTerm(e.target.value) }>
+          <ul>
+            {filteredPosts.map((post) => (
+              <li key={post.id}>{post.title}</li>
+            ))}
+          </ul>
+        </div>
+      );
+    };
+
 ## Advanced Usage
 
 Contextors can be created 
-
-## Parameterized contextors
 
 ## Caching
 
