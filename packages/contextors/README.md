@@ -1,7 +1,8 @@
 contextors
 ==========
 
-A library for creating memoised \"context selector\" functions.
+A library for creating "contextors", which efficiently select and combine values
+from React contexts.
 
  - **Contextors combine the values of multiple contexts** to compute a single value
  which is updated when any of its input values change.
@@ -50,11 +51,85 @@ A library for creating memoised \"context selector\" functions.
       return <div><b>{name}</b> ({ teamNames || "no teams" })</div>;
     }
 
+## Computing data with contextors
+
+Contextors are constructed using `createContextor`. They require an array of inputs,
+each of which is a Contextor or a `Contexto.Context` object, and a combining function,
+which returns data based on the current values associated with those inputs.
+
+A very simple contextor might depend on the value of a single context:
+
+    const BookCount =
+      createContextor(
+        [BooksContext],           // A context defined somewhere
+        (books) => books.length   // Operates on the local value of the context
+      );
+
+More complex contextors can depend on the values of multiple contexts:
+
+    const CurrentBook =
+      createContextor(
+        [CurrentBookIdContext, BooksContext],
+        (currentBookId, books) =>
+          books.filter(book => book.id === currentBookId)[0]
+      );
+
+Contextors can also depend on the values of other contextors:
+
+    const BookSummary =
+      createContextor(
+        [CurrentBook, AuthorsContext],
+        (book, authors) => ({
+          title:  book.title,
+          author: authors.filter(book.authorId === author.id)
+        })
+      );
+
+## Parameterized contextors
+
+A contextor can accept an extra argument in its combining function.
+
+    function BlogProvider({ children }) {
+      const { data: posts, isLoading } = useQuery("posts", () =>
+        fetch("https://jsonplaceholder.typicode.com/posts").then((res) => res.json())
+      );
+
+      if (isLoading)
+        return "Loading ...";
+      else
+        return <BlogContext.Provider value={posts} children={children} />;
+    }
+
+    function filterPosts(posts: Post[], filterString: string) {
+      return posts.filter((post) => post.title.includes(filterString));
+    }
+
+    const BlogFilter = createContextor(
+      [BlogContext],
+      ({ posts }, searchTerm) => ({
+        posts: posts.filter(({ title }) => title.includes(searchTerm))
+      })
+    );
+
+    const BlogPostList = () => {
+      const [searchTerm, setSearchTerm] = useState("");
+      const filteredPosts = useContextor(BlogFilter, searchTerm);
+
+      return (
+        <div>
+          <input onChange={ e => setSearchTerm(e.target.value) }>
+          <ul>
+            {filteredPosts.map((post) => (
+              <li key={post.id}>{post.title}</li>
+            ))}
+          </ul>
+        </div>
+      );
+    };
+
 ## Advanced Usage
 
 Contextors can be created 
-
-## Parameterized contextors
 
 ## Caching
 

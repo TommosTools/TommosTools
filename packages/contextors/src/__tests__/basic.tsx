@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import "@testing-library/jest-dom";
 import { createContext } from "contexto";
+import React from "react";
 import { createContextor, useContextor } from "..";
 
 test("example", () =>
@@ -141,4 +142,19 @@ test("Example from docs", () =>
 	render(<UserSummaryComponent />);
 
 	expect(screen.getByTestId("content")).toHaveTextContent("Henry Lemming (Builders, Floaters)");
+});
+
+test("valid inputs", () =>
+{
+	const ReactContext = React.createContext(0);
+
+	// @ts-expect-error -- can't use React.Context directly
+	expect(() => createContextor([ReactContext], () => 456))
+		.toThrowError("createContextor received React.Context input, but Contexto.Context input is required");
+
+	// @ts-expect-error -- invalid createContextor inputs
+	expect(() => createContextor([123, "abc"], () => 456))
+		.toThrowError(
+			"createContextor inputs must be Context or Contextor, but received the following types: [number, string]"
+		);
 });
