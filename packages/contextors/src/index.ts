@@ -125,6 +125,13 @@ function assertValidInputs(inputs: unknown[]): asserts inputs is Tuple<Contextor
 {
 	if (!inputs.every((input) => isContext(input) || isContextor(input)))
 	{
+		if (inputs.some(isReactContext))
+		{
+			throw new Error(
+				"createContextor received React.Context input, but Contexto.Context input is required"
+			);
+		}
+
 		const inputTypes = inputs.map(
 			(input) => (typeof input === "function" ? input.toString() : typeof input)
 		).join(", ");
@@ -133,6 +140,16 @@ function assertValidInputs(inputs: unknown[]): asserts inputs is Tuple<Contextor
 			`createContextor inputs must be Context or Contextor, but received the following types: [${inputTypes}]`
 		);
 	}
+}
+
+function isReactContext(value: unknown): value is React.Context<unknown>
+{
+	return (
+		value !== null
+		&& typeof value === "object"
+		&& "$$typeof" in value
+		&& (value as any).$$typeof === Symbol.for("react.context")
+	);
 }
 
 function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>): State<T, Arg>

@@ -1,7 +1,8 @@
 contextors
 ==========
 
-A library for creating memoised \"context selector\" functions.
+A library for creating "contextors", which efficiently select and combine values
+from React contexts.
 
  - **Contextors combine the values of multiple contexts** to compute a single value
  which is updated when any of its input values change.
@@ -49,6 +50,14 @@ A library for creating memoised \"context selector\" functions.
       const { name, teamNames } = useContextor(UserSummary);
       return <div><b>{name}</b> ({ teamNames || "no teams" })</div>;
     }
+
+## Computing data with contextors
+
+Contextors are constructed using `createContextor`. They require an array of inputs,
+each of which is a Contextor or a `Contexto.Context` object, and a combining function,
+which returns data based on the current values associated with those inputs.
+
+
 
 ## Parameterized contextors
 
