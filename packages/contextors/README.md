@@ -57,6 +57,25 @@ Contextors are constructed using `createContextor`. They require an array of inp
 each of which is a Contextor or a `Contexto.Context` object, and a combining function,
 which returns data based on the current values associated with those inputs.
 
+A very simple contextor might depend on the value of a single context:
+
+    const IdForCurrentUser =
+      createContextor(
+        [UserContext],      // A context defined somewhere
+        (user) => user.id   // Return the id from the local value of the context
+      );
+
+More complex contextors can depend on the values of multiple contexts:
+
+    const TeamsForCurrentUser =
+      createContextor(
+        [UserContext, TeamsContext],
+        (user, teams) =>
+          teams.filter(team => user.teamIds.includes(team.id))
+      );
+
+Contextors can also depend on the values of other contextors:
+
 
 
 ## Parameterized contextors
