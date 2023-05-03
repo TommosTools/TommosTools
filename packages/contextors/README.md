@@ -59,24 +59,31 @@ which returns data based on the current values associated with those inputs.
 
 A very simple contextor might depend on the value of a single context:
 
-    const IdForCurrentUser =
+    const BookCount =
       createContextor(
-        [UserContext],      // A context defined somewhere
-        (user) => user.id   // Return the id from the local value of the context
+        [BooksContext],           // A context defined somewhere
+        (books) => books.length   // Operates on the local value of the context
       );
 
 More complex contextors can depend on the values of multiple contexts:
 
-    const TeamsForCurrentUser =
+    const CurrentBook =
       createContextor(
-        [UserContext, TeamsContext],
-        (user, teams) =>
-          teams.filter(team => user.teamIds.includes(team.id))
+        [CurrentBookIdContext, BooksContext],
+        (currentBookId, books) =>
+          books.filter(book => book.id === currentBookId)[0]
       );
 
 Contextors can also depend on the values of other contextors:
 
-
+    const BookSummary =
+      createContextor(
+        [CurrentBook, AuthorsContext],
+        (book, authors) => ({
+          title:  book.title,
+          author: authors.filter(book.authorId === author.id)
+        })
+      );
 
 ## Parameterized contextors
 
