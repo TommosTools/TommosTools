@@ -89,43 +89,22 @@ Contextors can also depend on the values of other contextors:
 
 A contextor can accept an extra argument in its combining function.
 
-    function BlogProvider({ children }) {
-      const { data: posts, isLoading } = useQuery("posts", () =>
-        fetch("https://jsonplaceholder.typicode.com/posts").then((res) => res.json())
+    const FormValue =
+      createContextor(
+        [FormContext],
+        (form, fieldName) => form[fieldName]
       );
 
-      if (isLoading)
-        return "Loading ...";
-      else
-        return <BlogContext.Provider value={posts} children={children} />;
-    }
+    const TextInput = (fieldName) => {
+        const value       = useContextor(FormValue, fieldName);
 
-    function filterPosts(posts: Post[], filterString: string) {
-      return posts.filter((post) => post.title.includes(filterString));
-    }
+        const update      = useContextUpdate(FormValue);
+        const updateValue = (newValue) => updateValue(form => ({ ...form, [fieldName]: newValue }));
 
-    const BlogFilter = createContextor(
-      [BlogContext],
-      ({ posts }, searchTerm) => ({
-        posts: posts.filter(({ title }) => title.includes(searchTerm))
-      })
-    );
+        return <input value={value} onChange={ e => updateValue(e.target.value) } />;
+      };
 
-    const BlogPostList = () => {
-      const [searchTerm, setSearchTerm] = useState("");
-      const filteredPosts = useContextor(BlogFilter, searchTerm);
 
-      return (
-        <div>
-          <input onChange={ e => setSearchTerm(e.target.value) }>
-          <ul>
-            {filteredPosts.map((post) => (
-              <li key={post.id}>{post.title}</li>
-            ))}
-          </ul>
-        </div>
-      );
-    };
 
 ## Advanced Usage
 
