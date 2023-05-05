@@ -89,20 +89,57 @@ Contextors can also depend on the values of other contextors:
 
 A contextor can accept an extra argument in its combining function.
 
-    const FormValue =
-      createContextor(
-        [FormContext],
-        (form, fieldName) => form[fieldName]
-      );
+    const FormContext = createContext({});
+
+    const FormContextProvider = ({ initialValues, initialTouched, children }) =>
+    {
+      const [values, setValues]   = useState(initialValues || {});
+      const [touched, setTouched] = useState(initialTouched || {});
+
+      return <FormContext.Provider value={{ values, setValues, setTouched }} children={children} />;
+    }
+
+    const FieldValue = createContextor(
+      [FormContext],
+      ({ values }, fieldName) => values[fieldName])
+    );
+    const FieldTouched = createContextor(
+      [FormContext],
+      ({ touched }, fieldName) => touched[fieldName])
+    );
+
+    const FieldGetters = createContextor(
+      [FieldValue, FieldTouched],
+      (value, touched, fieldName) => ({ value, touched })
+    );
+
+    const FieldSetters = createContextor(
+      [FormContext],
+      ({ setValues, setTouched }, fieldName) => {
+        const setFieldTouched = (isTouched) => {
+          setTouched(touched => ({ ...touched, [fieldName]: isTouched }));
+        };
+        const setFieldValue = (value) => {
+          setValues(values => ({ ...values, [fieldName]: value }));
+          setFieldTouched(true);
+        };
+        return { setFieldValue, setFieldTouched };
+      }
+    );
+
+    const FieldUtil = createContextor(
+      [FieldGetters, FieldSetters],
+      (getters, setters, fieldName) => ({ ...getters, ...setters })
+    );
 
     const TextInput = (fieldName) => {
-        const value       = useContextor(FormValue, fieldName);
+      const { value, touched, setValue } = useContextor(FieldUtil, fieldName);
 
-        const update      = useContextUpdate(FormValue);
-        const updateValue = (newValue) => updateValue(form => ({ ...form, [fieldName]: newValue }));
-
-        return <input value={value} onChange={ e => updateValue(e.target.value) } />;
-      };
+      return <>
+        <input value={value} onChange={ e => setValue(e.target.value) } />
+        { touched && "*" }
+      </>
+    };
 
 
 
