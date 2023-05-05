@@ -89,17 +89,28 @@ Contextors can also depend on the values of other contextors:
 
 A contextor can accept an extra argument in its combining function.
 
+    const FormContext = createContext({});
+
+    const FormContextProvider = ({ initialValues, children }) =>
+    {
+      const [form, setForm] = useState(initialValues);
+      return <FormContext.Provider value={{ form, setForm }} children={children} />;
+    }
+
+    const useFormUpdate = (fieldName) => {
+      const { setForm } = useContext(FormContext);
+      return (newValue) => setForm(form => ({ ...form, [fieldName]: newValue });
+    }
+
     const FormValue =
       createContextor(
         [FormContext],
-        (form, fieldName) => form[fieldName]
+        ({form}, fieldName) => form[fieldName]
       );
 
     const TextInput = (fieldName) => {
         const value       = useContextor(FormValue, fieldName);
-
-        const update      = useContextUpdate(FormValue);
-        const updateValue = (newValue) => updateValue(form => ({ ...form, [fieldName]: newValue }));
+        const updateValue = useFormUpdate(fieldName)
 
         return <input value={value} onChange={ e => updateValue(e.target.value) } />;
       };
