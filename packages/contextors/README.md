@@ -93,27 +93,31 @@ A contextor can accept an extra argument in its combining function.
 
     const FormContextProvider = ({ initialValues, children }) =>
     {
-      const [form, setForm] = useState(initialValues);
-      return <FormContext.Provider value={{ form, setForm }} children={children} />;
-    }
-
-    const useFormUpdate = (fieldName) => {
-      const { setForm } = useContext(FormContext);
-      return (newValue) => setForm(form => ({ ...form, [fieldName]: newValue });
-    }
-
-    const FormValue =
-      createContextor(
-        [FormContext],
-        ({form}, fieldName) => form[fieldName]
+      const [values, setValues] = useState(initialValues || {});
+      const setValue = useCallback((fieldName, newValue) =>
+        setValues(values => ({ ...values, [fieldName]: newValue })),
+        [setValues]
       );
+      return <FormContext.Provider value={{ values, setValue }} children={children} />;
+    }
+
+    const FormValue = createContextor(
+      [FormContext],
+      ({ values }, fieldName) => values[fieldName]
+    );
+
+    const FormValueUpdater = createContextor(
+      [FormContext],
+      ({ setValues }, fieldName) =>
+        (newValue) => setValues(values => ({ ...values, [fieldName]: newValue }))
+    );
 
     const TextInput = (fieldName) => {
-        const value       = useContextor(FormValue, fieldName);
-        const updateValue = useFormUpdate(fieldName)
+      const value     = useContextor(FormValue, fieldName);
+      const setValue  = useContextor(FormValueUpdater, fieldName);
 
-        return <input value={value} onChange={ e => updateValue(e.target.value) } />;
-      };
+      return <input value={value} onChange={ e => updateValue(e.target.value) } />;
+    };
 
 
 
