@@ -91,32 +91,54 @@ A contextor can accept an extra argument in its combining function.
 
     const FormContext = createContext({});
 
-    const FormContextProvider = ({ initialValues, children }) =>
+    const FormContextProvider = ({ initialValues, initialTouched, children }) =>
     {
-      const [values, setValues] = useState(initialValues || {});
-      const setValue = useCallback((fieldName, newValue) =>
-        setValues(values => ({ ...values, [fieldName]: newValue })),
-        [setValues]
-      );
-      return <FormContext.Provider value={{ values, setValue }} children={children} />;
+      const [values, setValues]   = useState(initialValues || {});
+      const [touched, setTouched] = useState(initialTouched || {});
+
+      return <FormContext.Provider value={{ values, setValues, setTouched }} children={children} />;
     }
 
-    const FormValue = createContextor(
+    const FieldValue = createContextor(
       [FormContext],
-      ({ values }, fieldName) => values[fieldName]
+      ({ values }, fieldName) => values[fieldName])
+    );
+    const FieldTouched = createContextor(
+      [FormContext],
+      ({ touched }, fieldName) => touched[fieldName])
     );
 
-    const FormValueUpdater = createContextor(
+    const FieldGetters = createContextor(
+      [FieldValue, FieldTouched],
+      (value, touched, fieldName) => ({ value, touched })
+    );
+
+    const FieldSetters = createContextor(
       [FormContext],
-      ({ setValues }, fieldName) =>
-        (newValue) => setValues(values => ({ ...values, [fieldName]: newValue }))
+      ({ setValues, setTouched }, fieldName) => {
+        const setFieldTouched = (isTouched) => {
+          setTouched(touched => ({ ...touched, [fieldName]: isTouched }));
+        };
+        const setFieldValue = (value) => {
+          setValues(values => ({ ...values, [fieldName]: value }));
+          setFieldTouched(true);
+        };
+        return { setFieldValue, setFieldTouched };
+      }
+    );
+
+    const FieldUtil = createContextor(
+      [FieldGetters, FieldSetters],
+      (getters, setters, fieldName) => ({ ...getters, ...setters })
     );
 
     const TextInput = (fieldName) => {
-      const value     = useContextor(FormValue, fieldName);
-      const setValue  = useContextor(FormValueUpdater, fieldName);
+      const { value, touched, setValue } = useContextor(FieldUtil, fieldName);
 
-      return <input value={value} onChange={ e => updateValue(e.target.value) } />;
+      return <>
+        <input value={value} onChange={ e => setValue(e.target.value) } />
+        { touched && "*" }
+      </>
     };
 
 
