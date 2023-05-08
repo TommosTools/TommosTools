@@ -87,7 +87,14 @@ Contextors can also depend on the values of other contextors:
 
 ## Parameterized contextors
 
-A contextor can accept an extra argument in its combining function.
+A contextor can accept an extra argument in its combining function:
+
+    const SelectPokemonById = createContextor(
+      [PokemonList],  // a context, or another contextor
+      (pokemonList, id) => pokemonList.filter(pokemon => pokemon.id === id)[0]
+    );
+
+## Formik-like example
 
     const FormContext = createContext({});
 
