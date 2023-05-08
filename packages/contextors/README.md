@@ -87,7 +87,138 @@ Contextors can also depend on the values of other contextors:
 
 ## Parameterized contextors
 
-A contextor can accept an extra argument in its combining function.
+A contextor can accept an extra argument in its combining function. This argument must
+be provided as a second argument to `useContextor`:
+
+    const PAGE_SIZE = 5;
+
+    const ListPager = createContextor(
+      [ItemList],
+      (itemList, begin) => itemList.slice(begin, begin + PAGE_SIZE)
+    );
+
+    const PageDisplay = ({ begin = 0 }) =>
+      {
+        const items = useContextor(ListPager, begin)
+        return (<>
+          { items.map((item, i) =>
+            <Item key={i} item={item} /> }
+        </>);
+      };
+
+The argument supplied to `useContextor` is passed to all contextors that are
+dependencies of the primary contextor. It's important that the expected arguments
+to the contextors are compatible – this is enforced if you're using the TypeScript
+interface:
+
+    const MultiplyContextor = createContextor(
+      [NumberContext],
+      (contextValue: number, arg: number) => contextValue * arg
+    );
+
+    const SubtractContextor = createContextor(
+      [MultiplyContextor],
+    // NO TYPE ERROR
+      (multipliedValue: number, arg: number) => multipliedValue - arg
+    );
+
+    const IncompatibleContextor = createContextor(
+      [MultiplyContextor],
+    // TYPE ERROR: arg of type string is not compatible with arg of type number
+      (multipliedValue: number, arg: string) => arg.repeat(multipliedValue)
+    )
+
+## Caching
+
+Each contextor caches the results of previous evaluations, based on previous input values.
+The cache is shared between all consumers of a contextor anywhere in the app.
+
+The precise caching behaviour depends on the types of the inputs (i.e. the values of
+the contextor's dependent contexts and contextors, and the argument if any):
+
+ - If all inputs are `object` values, the contextor will always provide the same output
+   for those inputs:
+
+```javascript
+    const ObjectContext = createContext({});
+    let testId = 0;
+
+    const ContextorA = createContextor(
+      [ObjectContext],
+      (value, objArg) => { console.log("compute", testId); return [value, objArg]; }
+    );
+    
+    const useTestContextorA = () => {
+      const obj1 = { foo: "bar" };
+      const obj2 = { foo: "bar" };
+
+      testId = 1; useContextor(ContextorA, obj1);  // compute 1
+      testId = 2; useContextor(ContextorA, obj2);  // compute 2
+      testId = 3; useContextor(ContextorA, obj1);  // (no output, same as compute 1)
+    }
+```
+
+ - If all inputs are non-`object` values, the contextor caches the most recent output,
+   which it returns only if the inputs match their values in the previous evaluation
+   (i.e. memoization)
+
+```javascript
+    const StringContext = createContext("");
+    let testId = 0;
+
+    const ContextorB = createContextor(
+      [StringContext],
+      (value, numArg) => { console.log("compute", testId); return [value, numArg]; }
+    );
+    
+    const useTestContextorB = () => {
+      testId = 1; useContextor(ContextorB, 1); // compute 1
+      testId = 2; useContextor(ContextorB, 2); // compute 2
+      testId = 3; useContextor(ContextorB, 1); // compute 3
+      testId = 4; useContextor(ContextorB, 1); // (no output, same as compute 3)
+    }
+```
+
+ - If the inputs contain both `object` and non-`object` values then a combination caching
+   strategy is employed – the last value for each combination of `object` values is memoized,
+   keyed by the non-`object` values:
+
+```javascript
+    const ObjectContext = createContext({});
+    const ContextorC = createContextor([ObjectContext], (value, numArg) => [value, numArg]);
+
+    const TestContextorC = ({ id, num }) => {
+      testId = id;
+      useContextor(ContextorC, num);
+      return null;
+    }
+
+    const obj1 = { foo: "bar" };
+    const obj2 = { foo: "bar" };
+
+    const Test = () => <>
+      <ObjectContext.Provider value={obj1}>
+        <TestContextorC id={1} num={1} /> {/* compute 1 */}
+        <TestContextorC id={2} num={2} /> {/* compute 2 */}
+        <TestContextorC id={3} num={1} /> {/* compute 3 */}
+      </ObjectContext.Provider>
+      <ObjectContext.Provider value={obj2}>
+        <TestContextorC id={4} num={1} /> {/* compute 4 */}
+        <TestContextorC id={5} num={2} /> {/* compute 5 */}
+        <TestContextorC id={6} num={1} /> {/* compute 6 */}
+      </ObjectContext.Provider>
+      <ObjectContext.Provider value={obj1}>
+        <TestContextorC id={7} num={1} /> {/* (no output, same as compute 3) */}
+      </ObjectContext.Provider>
+      <ObjectContext.Provider value={obj2}>
+        <TestContextorC id={8} num={1} /> {/* (no output, same as compute 6) */}
+      </ObjectContext.Provider>
+    </>
+```
+
+
+
+## Formik-like example
 
     const FormContext = createContext({});
 
@@ -146,9 +277,5 @@ A contextor can accept an extra argument in its combining function.
 ## Advanced Usage
 
 Contextors can be created 
-
-## Caching
-
-memoized vs "omni-cache"
 
 ## Contextors vs selectors
