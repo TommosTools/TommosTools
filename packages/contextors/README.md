@@ -94,6 +94,14 @@ A contextor can accept an extra argument in its combining function:
       (pokemonList, id) => pokemonList.filter(pokemon => pokemon.id === id)[0]
     );
 
+    const PokemonDisplay = ({ id }) =>
+      {
+        const pokemon = useContextor(SelectPokemonById, id);
+        return <div>{ pokemon.name }</div>;
+      };
+
+If a contextor depends on other contextors that require a 
+
 ## Formik-like example
 
     const FormContext = createContext({});
