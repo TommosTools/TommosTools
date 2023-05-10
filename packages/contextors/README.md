@@ -87,20 +87,46 @@ Contextors can also depend on the values of other contextors:
 
 ## Parameterized contextors
 
-A contextor can accept an extra argument in its combining function:
+A contextor can accept an extra argument in its combining function. This argument must
+be provided as a second argument to `useContextor`:
 
-    const SelectPokemonById = createContextor(
-      [PokemonList],  // a context, or another contextor
-      (pokemonList, id) => pokemonList.filter(pokemon => pokemon.id === id)[0]
+    const PAGE_SIZE = 5;
+
+    const ListPager = createContextor(
+      [ItemList],
+      (itemList, begin) => itemList.slice(begin, begin + PAGE_SIZE)
     );
 
-    const PokemonDisplay = ({ id }) =>
+    const PageDisplay = ({ begin = 0 }) =>
       {
-        const pokemon = useContextor(SelectPokemonById, id);
-        return <div>{ pokemon.name }</div>;
+        const items = useContextor(ListPager, begin)
+        return (<>
+          { items.map((item, i) =>
+            <Item key={i} item={item} /> }
+        </>);
       };
 
-If a contextor depends on other contextors that require a 
+The argument supplied to `useContextor` is passed to all contextors that are
+dependencies of the primary contextor. It's important that the expected arguments
+to the contextors are compatible – this is enforced if you're using the TypeScript
+interface:
+
+    const MultiplyContextor = createContextor(
+      [NumberContext],
+      (contextValue: number, arg: number) => contextValue * arg
+    );
+
+    const SubtractContextor = createContextor(
+      [MultiplyContextor],
+    // NO TYPE ERROR
+      (multipliedValue: number, arg: number) => multipliedValue - arg
+    );
+
+    const IncompatibleContextor = createContextor(
+      [MultiplyContextor],
+    // TYPE ERROR: arg of type string is not compatible with arg of type number
+      (multipliedValue: number, arg: string) => arg.repeat(multipliedValue)
+    )
 
 ## Formik-like example
 
