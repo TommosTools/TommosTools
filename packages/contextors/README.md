@@ -128,6 +128,49 @@ interface:
       (multipliedValue: number, arg: string) => arg.repeat(multipliedValue)
     )
 
+## Caching
+
+Each contextor caches the results of previous evaluations, based on previous input values.
+The cache is shared between all consumers of a contextor anywhere in the app.
+
+The precise caching behaviour depends on the types of the inputs (i.e. the values of
+the contextor's dependent contexts and contextors, and the argument if any):
+
+ - If all inputs are `object` values, the contextor will always provide the same output
+   for those inputs:
+
+    const ContextorA = createContextor([ObjectContext], (value, arg) => [value, arg]);
+    // ...
+    const obj1 = { foo: "bar" }, obj2 = { foo: "bar" };
+    const value1 = useContextor(ContextorA, obj1);
+    const value2 = useContextor(ContextorA, obj2);
+    const value3 = useContextor(ContextorA, obj1);
+    assert(value1 !== value2);
+    assert(value1 === value3);
+
+ - If all inputs are non-`object` values, the contextor caches the most recent output,
+   which it returns only if the inputs match their values in the previous evaluation
+   (i.e. memoization)
+
+    const ContextorB = createContextor([StringContext], (value, arg) => [value, arg]);
+    // ...
+    const value1 = useContextor(ContextorB, 1);
+    const value2 = useContextor(ContextorB, 2);
+    const value3 = useContextor(ContextorB, 1);
+    assert(value1 !== value2);
+    assert(value1 !== value3);
+    const value4 = useContextor(ContextorB, 1);
+    assert(value3 === value4);
+
+ - If the inputs contain both `object` and non-`object` values then a combination caching
+   strategy is employed – the last value for 
+
+specifically, the inputs that are "object" values, and all other 
+
+ - All non-object inputs are 
+
+
+
 ## Formik-like example
 
     const FormContext = createContext({});
@@ -187,9 +230,5 @@ interface:
 ## Advanced Usage
 
 Contextors can be created 
-
-## Caching
-
-memoized vs "omni-cache"
 
 ## Contextors vs selectors
