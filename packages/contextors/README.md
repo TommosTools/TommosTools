@@ -139,35 +139,82 @@ the contextor's dependent contexts and contextors, and the argument if any):
  - If all inputs are `object` values, the contextor will always provide the same output
    for those inputs:
 
-    const ContextorA = createContextor([ObjectContext], (value, arg) => [value, arg]);
-    // ...
-    const obj1 = { foo: "bar" }, obj2 = { foo: "bar" };
-    const value1 = useContextor(ContextorA, obj1);
-    const value2 = useContextor(ContextorA, obj2);
-    const value3 = useContextor(ContextorA, obj1);
-    assert(value1 !== value2);
-    assert(value1 === value3);
+```javascript
+    const ObjectContext = createContext({});
+    let testId = 0;
+
+    const ContextorA = createContextor(
+      [ObjectContext],
+      (value, objArg) => { console.log("compute", testId); return [value, objArg]; }
+    );
+    
+    const useTestContextorA = () => {
+      const obj1 = { foo: "bar" };
+      const obj2 = { foo: "bar" };
+
+      testId = 1; useContextor(ContextorA, obj1);  // compute 1
+      testId = 2; useContextor(ContextorA, obj2);  // compute 2
+      testId = 3; useContextor(ContextorA, obj1);  // (no output, same as compute 1)
+    }
+```
 
  - If all inputs are non-`object` values, the contextor caches the most recent output,
    which it returns only if the inputs match their values in the previous evaluation
    (i.e. memoization)
 
-    const ContextorB = createContextor([StringContext], (value, arg) => [value, arg]);
-    // ...
-    const value1 = useContextor(ContextorB, 1);
-    const value2 = useContextor(ContextorB, 2);
-    const value3 = useContextor(ContextorB, 1);
-    assert(value1 !== value2);
-    assert(value1 !== value3);
-    const value4 = useContextor(ContextorB, 1);
-    assert(value3 === value4);
+```javascript
+    const StringContext = createContext("");
+    let testId = 0;
+
+    const ContextorB = createContextor(
+      [StringContext],
+      (value, numArg) => { console.log("compute", testId); return [value, numArg]; }
+    );
+    
+    const useTestContextorB = () => {
+      testId = 1; useContextor(ContextorB, 1); // compute 1
+      testId = 2; useContextor(ContextorB, 2); // compute 2
+      testId = 3; useContextor(ContextorB, 1); // compute 3
+      testId = 4; useContextor(ContextorB, 1); // (no output, same as compute 3)
+    }
+```
 
  - If the inputs contain both `object` and non-`object` values then a combination caching
-   strategy is employed – the last value for 
+   strategy is employed – the last value for each combination of `object` values is memoized,
+   keyed by the non-`object` values:
 
-specifically, the inputs that are "object" values, and all other 
+```javascript
+    const ObjectContext = createContext({});
+    const ContextorC = createContextor([ObjectContext], (value, numArg) => [value, numArg]);
 
- - All non-object inputs are 
+    const TestContextorC = ({ id, num }) => {
+      testId = id;
+      useContextor(ContextorC, num);
+      return null;
+    }
+
+    const obj1 = { foo: "bar" };
+    const obj2 = { foo: "bar" };
+
+    const Test = () => <>
+      <ObjectContext.Provider value={obj1}>
+        <TestContextorC id={1} num={1} /> {/* compute 1 */}
+        <TestContextorC id={2} num={2} /> {/* compute 2 */}
+        <TestContextorC id={3} num={1} /> {/* compute 3 */}
+      </ObjectContext.Provider>
+      <ObjectContext.Provider value={obj2}>
+        <TestContextorC id={4} num={1} /> {/* compute 4 */}
+        <TestContextorC id={5} num={2} /> {/* compute 5 */}
+        <TestContextorC id={6} num={1} /> {/* compute 6 */}
+      </ObjectContext.Provider>
+      <ObjectContext.Provider value={obj1}>
+        <TestContextorC id={7} num={1} /> {/* (no output, same as compute 3) */}
+      </ObjectContext.Provider>
+      <ObjectContext.Provider value={obj2}>
+        <TestContextorC id={8} num={1} /> {/* (no output, same as compute 6) */}
+      </ObjectContext.Provider>
+    </>
+```
 
 
 
