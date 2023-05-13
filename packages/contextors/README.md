@@ -216,7 +216,10 @@ the contextor's dependent contexts and contextors, and the argument if any):
     </>
 ```
 
+## Typescript support
 
+Contextors are implemented in TypeScript, and enforce type safety on contextor
+creation and usage.
 
 ## Formik-like example
 
