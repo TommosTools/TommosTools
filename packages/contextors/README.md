@@ -14,6 +14,15 @@ from React contexts.
 
 ## Basic Usage
 
+    # Create a contextor from data sources (contexts and/or other contextors)
+    const contextor =
+      createContextor([...sources], (...sourceValues, arg) => combinedValue);
+
+    # Within a component, subscribe to the computed local value of a contextor
+    const value = useContextor(contextor, arg);
+
+## Simple example
+
     # Create some Contexts
     const UserContext  = contexto.createContext({
       firstName: "Henry",
@@ -275,6 +284,25 @@ creation and usage.
       </>
     };
 
+## Integration with redux
+
+It's straightforward to use the Redux store in contextors, simply by defining
+a context provider that subscribes to the store's value, and using that context
+as a contextor source:
+
+    const ReduxContext = contexto.createContext({});
+
+    const ReduxProvider = ({ children }) => {
+      const store = useStore();
+      return <ReduxContext.Provider value={store} children={children} />
+    }
+
+    const MyContextor = createContextor(
+      [ReduxContext, SomeContextor],
+      (store, someValue) => { /* ... */ }
+    );
+
+TODO FIXME -- rename inputs to "sources" / "sourceValues"
 
 
 ## Advanced Usage
