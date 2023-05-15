@@ -284,22 +284,21 @@ creation and usage.
       </>
     };
 
-## Integration with redux
+## Integration with Redux
 
 It's straightforward to use the Redux store in contextors, simply by defining
-a context provider that subscribes to the store's value, and using that context
-as a contextor source:
+a context provider that subscribes to the store's value:
 
     const ReduxContext = contexto.createContext({});
 
     const ReduxProvider = ({ children }) => {
-      const store = useStore();
-      return <ReduxContext.Provider value={store} children={children} />
+      const rootState = useSelector(state => state);
+      return <ReduxContext.Provider value={rootState} children={children} />
     }
 
     const MyContextor = createContextor(
       [ReduxContext, SomeContextor],
-      (store, someValue) => { /* ... */ }
+      (rootStore, someValue) => { /* ... */ }
     );
 
 TODO FIXME -- rename inputs to "sources" / "sourceValues"
