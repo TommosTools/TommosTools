@@ -144,17 +144,17 @@ test("Example from docs", () =>
 	expect(screen.getByTestId("content")).toHaveTextContent("Henry Lemming (Builders, Floaters)");
 });
 
-test("valid inputs", () =>
+test("valid sources", () =>
 {
 	const ReactContext = React.createContext(0);
 
 	// @ts-expect-error -- can't use React.Context directly
 	expect(() => createContextor([ReactContext], () => 456))
-		.toThrowError("createContextor received React.Context input, but Contexto.Context input is required");
+		.toThrowError("createContextor received React.Context source, but Contexto.Context source is required");
 
-	// @ts-expect-error -- invalid createContextor inputs
+	// @ts-expect-error -- invalid createContextor sources
 	expect(() => createContextor([123, "abc"], () => 456))
 		.toThrowError(
-			"createContextor inputs must be Context or Contextor, but received the following types: [number, string]"
+			"createContextor sources must be Context or Contextor, but received the following types: [number, string]"
 		);
 });
