@@ -10,29 +10,29 @@ import type {
 	Combiner,
 	CombinerParamsAreEqual,
 	Contextor,
-	ContextorInput,
+	ContextorSource,
 	OutputsFor,
 	Tuple,
 } from "./types";
 
-export class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Arg, Out>
+export class RawContextor<Sources extends Tuple<ContextorSource<Arg, unknown>>, Arg, Out>
 {
 	readonly contexts: Set<Context<unknown>>;
 
 	constructor(
-		readonly inputs:	Inputs,
-		readonly combiner:	Combiner<Inputs, Arg, Out>,
-		readonly isEqual?:	CombinerParamsAreEqual<OutputsFor<Inputs>, Arg>
+		readonly sources:	Sources,
+		readonly combiner:	Combiner<Sources, Arg, Out>,
+		readonly isEqual?:	CombinerParamsAreEqual<OutputsFor<Sources>, Arg>
 	)
 	{
 		this.contexts = new Set();
 
-		for (const input of inputs)
+		for (const source of sources)
 		{
-			if (isContext(input))
-				this.contexts.add(input);
-			else /* if (isContextor(input)) */
-				input.contexts.forEach((context) => this.contexts.add(context));
+			if (isContext(source))
+				this.contexts.add(source);
+			else /* if (isContextor(source)) */
+				source.contexts.forEach((context) => this.contexts.add(context));
 		}
 	}
 
@@ -43,67 +43,67 @@ export class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Ar
 		opts?:		{ memoProvider: MemoSlotProvider }
 	): [Out, Unsubscriber]
 	{
-		const { inputs } = this;
+		const { sources } = this;
 
 		const unsubscribers: Unsubscriber[] = [];
 		const unsubscribeAll = () => unsubscribers.forEach((unsubscribe) => unsubscribe());
 
-		const inputValues = (
-			inputs.map(
-				<InnerOut>(input: ContextorInput<Arg, InnerOut>, i: number) =>
+		const sourceValues = (
+			sources.map(
+				<InnerOut>(source: ContextorSource<Arg, InnerOut>, i: number) =>
 				{
 					const updateValue = (
 						(newValue: InnerOut) =>
 						{
-							inputValues[i] = newValue;
-							onChange(this.computeWithCache(inputValues, arg, opts?.memoProvider.iterator()));
+							sourceValues[i] = newValue;
+							onChange(this.computeWithCache(sourceValues, arg, opts?.memoProvider.iterator()));
 						}
 					);
 
 					const [initialValue, unsubscribe] = (
-						isContext(input)
-							?	subscriber(input, updateValue)
-							:	input.subscribe(subscriber, updateValue, arg, opts)
+						isContext(source)
+							?	subscriber(source, updateValue)
+							:	source.subscribe(subscriber, updateValue, arg, opts)
 					);
 
 					unsubscribers.push(unsubscribe);
 
 					return initialValue;
 				}
-			) as unknown as OutputsFor<Inputs>
+			) as unknown as OutputsFor<Sources>
 		);
 
-		const initialValue = this.computeWithCache(inputValues, arg, opts?.memoProvider.iterator());
+		const initialValue = this.computeWithCache(sourceValues, arg, opts?.memoProvider.iterator());
 
 		return [initialValue, unsubscribeAll];
 	}
 
-	private computeWithCache(inputValues: OutputsFor<Inputs>, arg: Arg, memoSlots?: MemoSlotIterator): Out
+	private computeWithCache(sourceValues: OutputsFor<Sources>, arg: Arg, memoSlots?: MemoSlotIterator): Out
 	{
 		return (
 			this.isEqual
-				?	this.computeWithMemoiseCache(inputValues, arg, memoSlots)
-				:	this.computeWithMultiCache(inputValues, arg)
+				?	this.computeWithMemoiseCache(sourceValues, arg, memoSlots)
+				:	this.computeWithMultiCache(sourceValues, arg)
 		);
 	}
 
-	private computeWithMemoiseCache(inputValues: OutputsFor<Inputs>, arg: Arg, memoSlots?: MemoSlotIterator): Out
+	private computeWithMemoiseCache(sourceValues: OutputsFor<Sources>, arg: Arg, memoSlots?: MemoSlotIterator): Out
 	{
 		const memoSlot = memoSlots?.next();
 
-		if (memoSlot?.inputValues
+		if (memoSlot?.sourceValues
 			&& this.isEqual!(	// eslint-disable-line @typescript-eslint/no-non-null-assertion
-				[inputValues, arg],
-				[memoSlot.inputValues, memoSlot.arg] as [OutputsFor<Inputs>, Arg]
+				[sourceValues, arg],
+				[memoSlot.sourceValues, memoSlot.arg] as [OutputsFor<Sources>, Arg]
 			)
 		)
 			return memoSlot.out as Out;
 
-		const out = this.combiner(...inputValues, arg);
+		const out = this.combiner(...sourceValues, arg);
 
 		if (memoSlot)
 		{
-			memoSlot.inputValues	= inputValues;
+			memoSlot.sourceValues	= sourceValues;
 			memoSlot.arg			= arg;
 			memoSlot.out			= out;
 		}
@@ -116,17 +116,17 @@ export class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Ar
 	// Arbitrary object scoped to the Contextor that can be used to index a WeakMap
 	private TerminalCacheKey = {};
 
-	private computeWithMultiCache(inputValues: OutputsFor<Inputs>, arg: Arg): Out
+	private computeWithMultiCache(sourceValues: OutputsFor<Sources>, arg: Arg): Out
 	{
 		//
 		// Caching of combined values using nested WeakMaps.
 		//
 		// Where the context values are objects, they are used to create a chain of WeakMaps
 		// with the last map in the chain containing a memoised combined value computed from
-		// the input values.
+		// the source values.
 		// This final cache level stores the latest value computed for the objects
-		// in the inputValues -- if there are non-objects in the inputValues then only the
-		// result for the most recent input is cached.
+		// in the sourceValues -- if there are non-objects in the sourceValues then only the
+		// result for the most recent source value is cached.
 		//
 		// e.g.
 		//   cachedCombiner([obj1, obj2, obj3, obj4])    // First access -- cache miss
@@ -147,19 +147,19 @@ export class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Ar
 
 		let cacheRef = this.multiCache;
 
-		const inputValuesWithArg = [...inputValues, arg];
+		const sourceValuesWithArg = [...sourceValues, arg];
 
-		for (const input of inputValuesWithArg)
+		for (const source of sourceValuesWithArg)
 		{
-			if (isObject(input))
+			if (isObject(source))
 			{
-				let nextCacheRef = cacheRef.get(input) as NestedCache<Out>;
+				let nextCacheRef = cacheRef.get(source) as NestedCache<Out>;
 				if (nextCacheRef)
 					cacheRef = nextCacheRef;
 				else
 				{
 					nextCacheRef = new WeakMap();
-					cacheRef.set(input, nextCacheRef);
+					cacheRef.set(source, nextCacheRef);
 					cacheRef = nextCacheRef;
 				}
 			}
@@ -167,14 +167,14 @@ export class RawContextor<Inputs extends Tuple<ContextorInput<Arg, unknown>>, Ar
 
 		const terminalCache = cacheRef.get(this.TerminalCacheKey);
 
-		if (isTerminalCache(terminalCache) && shallowEqual(terminalCache.keys, inputValuesWithArg))
+		if (isTerminalCache(terminalCache) && shallowEqual(terminalCache.keys, sourceValuesWithArg))
 		{
 			// Cached value was found
 			return terminalCache.value;
 		}
 		// Recompute value, and store in cache
-		const value = this.combiner(...inputValues, arg);
-		cacheRef.set(this.TerminalCacheKey, { keys: inputValuesWithArg, value });
+		const value = this.combiner(...sourceValues, arg);
+		cacheRef.set(this.TerminalCacheKey, { keys: sourceValuesWithArg, value });
 		return value;
 	}
 }
