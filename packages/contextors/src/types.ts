@@ -15,34 +15,27 @@ export type Contextor<Arg, Out, ArgIsOptional extends boolean = boolean> = (
 		:	never)
 );
 
-export type BoundContextor<Arg, Out> = [RawContextor<any, Arg, Out>, Arg];
-
-export type ArglessContextorInput<Out=unknown> = (
+export type ArglessContextorSource<Out=unknown> = (
 	| Context<Out>
 	| Contextor<any, Out, true>
 );
 
-export type ContextorInput<Arg, Out> = (
+export type ContextorSource<Arg, Out> = (
 	| Context<Out>
 	| Contextor<Arg, Out>
 );
 
-export type UseContextorInput<Arg, Out> = (
-	| Contextor<Arg, Out, true>
-	| BoundContextor<Arg, Out>
-);
-
-export type OutputsFor<Inputs extends Tuple<ContextorInput<any, unknown>>> = Inputs extends infer InputsT ? {
-	[Index in keyof InputsT]: (
-		InputsT[Index] extends ContextorInput<any, infer Out> ? Out : InputsT[Index]
+export type OutputsFor<Sources extends Tuple<ContextorSource<any, unknown>>> = Sources extends infer SourcesT ? {
+	[Index in keyof SourcesT]: (
+		SourcesT[Index] extends ContextorSource<any, infer Out> ? Out : SourcesT[Index]
 	)
 } : never;
 
-export type ArgFreeCombiner<Inputs extends Tuple<ContextorInput<any, unknown>>, Out> =
-	((...params: [...inputs: OutputsFor<Inputs>, arg?: never]) => Out);
+export type ArgFreeCombiner<Sources extends Tuple<ContextorSource<any, unknown>>, Out> =
+	((...params: [...sources: OutputsFor<Sources>, arg?: never]) => Out);
 
-export type Combiner<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg, Out> =
-	((...params: [...inputs: OutputsFor<Inputs>, arg: Arg]) => Out);
+export type Combiner<Sources extends Tuple<ContextorSource<any, unknown>>, Arg, Out> =
+	((...params: [...sources: OutputsFor<Sources>, arg: Arg]) => Out);
 
 export type CombinerParamsAreEqual<T, Arg> =
 	(params: [T, Arg], otherParams: [T, Arg]) => boolean;
@@ -53,14 +46,14 @@ type ObjectExtract<T, U> = (
 		:	T
 );
 
-export type MandatoryArgBase<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg> =
+export type MandatoryArgBase<Sources extends Tuple<ContextorSource<any, unknown>>, Arg> =
     // Can't use vanilla Extract here because Arg introduces a circular constraint
-    ObjectExtract<CompatibleArgFor<Inputs>, Arg>;
+    ObjectExtract<CompatibleArgFor<Sources>, Arg>;
 
 export type Simplify<T> = T extends object ? { [K in keyof T]: T[K] } : T;
 
-type CompatibleArgsFor<Inputs extends Tuple<ContextorInput<any, any>>> = {
-	[Index in keyof Inputs as (Inputs[Index] extends Contextor<any, any> ? Index : never)]: ArgFor<Inputs[Index]>
+type CompatibleArgsFor<Sources extends Tuple<ContextorSource<any, any>>> = {
+	[Index in keyof Sources as (Sources[Index] extends Contextor<any, any> ? Index : never)]: ArgFor<Sources[Index]>
 };
 
 type ArgFor<K> =
@@ -78,16 +71,16 @@ type WrapArg<T> = {
 
 type HandleWrappedNever<T> = [T] extends [never] ? { arg: never } : T;
 
-export type CompatibleArgFor<Inputs extends Tuple<ContextorInput<any, any>>> =
-	({} extends CompatibleArgsFor<Inputs>	// eslint-disable-line @typescript-eslint/ban-types
+export type CompatibleArgFor<Sources extends Tuple<ContextorSource<any, any>>> =
+	({} extends CompatibleArgsFor<Sources>	// eslint-disable-line @typescript-eslint/ban-types
 		?	{ arg: unknown }				// There are no args to be compatible with
 		:	HandleWrappedNever<UnionToIntersection<	// eslint-disable-next-line @typescript-eslint/indent
-				WrapArg<CompatibleArgsFor<Inputs>>[keyof CompatibleArgsFor<Inputs>]>>
+				WrapArg<CompatibleArgsFor<Sources>>[keyof CompatibleArgsFor<Sources>]>>
 	) extends { arg: infer Arg }
 		?	[Arg] extends [object] ? (Arg & object) : Arg	// force (primitive & { ... }) to map to never
 		:	never;
 
-export type ContextorOptions<Inputs extends Tuple<ContextorInput<any, unknown>>, Arg> =
+export type ContextorOptions<Sources extends Tuple<ContextorSource<any, unknown>>, Arg> =
 	Partial<{
-		isEqual:	CombinerParamsAreEqual<OutputsFor<Inputs>, Arg>;
+		isEqual:	CombinerParamsAreEqual<OutputsFor<Sources>, Arg>;
 	}>;

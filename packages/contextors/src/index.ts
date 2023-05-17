@@ -15,11 +15,11 @@ import {
 import { MemoSlotProvider } from "./memoslots";
 import {
 	ArgFreeCombiner,
-	ArglessContextorInput,
+	ArglessContextorSource,
 	Combiner,
 	CompatibleArgFor,
 	Contextor,
-	ContextorInput,
+	ContextorSource,
 	ContextorOptions,
 	MandatoryArgBase,
 	OutputsFor,
@@ -30,10 +30,10 @@ import { isContextor, RawContextor } from "./rawcontextor";
 
 //
 // Match combiners that produce a contextor with an OPTIONAL argument.
-// Contextors with an optional argument can't use an input with a mandatory argument;
-// if all the inputs accept an optional argument then the resulting contextor will be
+// Contextors with an optional argument can't use an source with a mandatory argument;
+// if all the sources accept an optional argument then the resulting contextor will be
 // able to accept an undefined argument, or any other type compatible with the argument
-// to all the inputs.
+// to all the sources.
 // 
 // This first declaration also provides the default return type when none of the declarations match.
 // In this case TS cannot infer `Out` so we default it to `never`, which results in a return type
@@ -41,17 +41,17 @@ import { isContextor, RawContextor } from "./rawcontextor";
 //
 
 export function createContextor<
-	Inputs extends Tuple<ArglessContextorInput>,
-	Arg extends MandatoryArgBase<Inputs, Arg>,
+	Sources extends Tuple<ArglessContextorSource>,
+	Arg extends MandatoryArgBase<Sources, Arg>,
 	Out=never
 >(
-	inputs:		Inputs,
-	combiner:	Combiner<Inputs, Arg | undefined, Out>,
-	options?:	ContextorOptions<Inputs, Arg>
+	sources:	Sources,
+	combiner:	Combiner<Sources, Arg | undefined, Out>,
+	options?:	ContextorOptions<Sources, Arg>
 ): (
 	[Out] extends [never]
 		?	Contextor<never, never>
-		:	Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, true>
+		:	Contextor<Simplify<Arg & CompatibleArgFor<Sources>>, Out, true>
 );
 
 //
@@ -59,49 +59,49 @@ export function createContextor<
 // when provided a combiner which takes NO argument.
 //
 export function createContextor<
-	Inputs extends Tuple<ArglessContextorInput>,
+	Sources extends Tuple<ArglessContextorSource>,
 	Out
 >(
-	inputs:		Inputs,
-	combiner:	ArgFreeCombiner<Inputs, Out>,
-	options?:	ContextorOptions<Inputs, unknown>
+	sources:	Sources,
+	combiner:	ArgFreeCombiner<Sources, Out>,
+	options?:	ContextorOptions<Sources, unknown>
 ): Contextor<unknown, Out, true>;
 
 //
 // General case: produce a contextor that requires an argument.
-// This argument must be compatible with the combiner argument and all the inputs,
-// e.g. combiner taking `{ foo: number }` and input taking `{ bar: string }` produces a
+// This argument must be compatible with the combiner argument and all the sources,
+// e.g. combiner taking `{ foo: number }` and source taking `{ bar: string }` produces a
 // contextor taking `{ foo: number, bar: string }`.
 //
 export function createContextor<
-	Inputs extends Tuple<ContextorInput<any, unknown>>,
-	Arg extends MandatoryArgBase<Inputs, Arg>,
+	Sources extends Tuple<ContextorSource<any, unknown>>,
+	Arg extends MandatoryArgBase<Sources, Arg>,
 	Out
 >(
-	inputs:		[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
-	combiner:	Combiner<Inputs, Arg, Out>,
-	options?:	ContextorOptions<Inputs, Arg>
-): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
+	sources:	[CompatibleArgFor<Sources>] extends [never] ? never : Sources,
+	combiner:	Combiner<Sources, Arg, Out>,
+	options?:	ContextorOptions<Sources, Arg>
+): Contextor<Simplify<Arg & CompatibleArgFor<Sources>>, Out, false>;
 
 //
-// Catch-all: if arguments for the combiner and any inputs are incompatible then
+// Catch-all: if arguments for the combiner and any sources are incompatible then
 // we fall through to this declaration, which provides a more helpful type error.
 // 
 export function createContextor<
-	Inputs extends Tuple<ContextorInput<any, unknown>>,
-	Arg extends CompatibleArgFor<Inputs>,
+	Sources extends Tuple<ContextorSource<any, unknown>>,
+	Arg extends CompatibleArgFor<Sources>,
 	Out
 >(
-	inputs:		[CompatibleArgFor<Inputs>] extends [never] ? never : Inputs,
-	combiner:	Combiner<Inputs, Arg, Out>,
-	options?:	ContextorOptions<Inputs, Arg>
-): Contextor<Simplify<Arg & CompatibleArgFor<Inputs>>, Out, false>;
+	sources:	[CompatibleArgFor<Sources>] extends [never] ? never : Sources,
+	combiner:	Combiner<Sources, Arg, Out>,
+	options?:	ContextorOptions<Sources, Arg>
+): Contextor<Simplify<Arg & CompatibleArgFor<Sources>>, Out, false>;
 
-export function createContextor<Inputs extends Tuple<ContextorInput<Arg, any>>, Arg, Out>(
+export function createContextor<Sources extends Tuple<ContextorSource<Arg, any>>, Arg, Out>(
 	...params: [
-		...inputs:	(Inputs | [Inputs]),
-		combiner:	Combiner<OutputsFor<Inputs>, Arg, Out>,
-		options?:	ContextorOptions<Inputs, Arg>
+		...sources:	(Sources | [Sources]),
+		combiner:	Combiner<OutputsFor<Sources>, Arg, Out>,
+		options?:	ContextorOptions<Sources, Arg>
 	]
 )
 {
@@ -114,30 +114,30 @@ export function createContextor<Inputs extends Tuple<ContextorInput<Arg, any>>, 
 			: [lastParam,		{}]
 	);
 
-	const inputs = Array.isArray(rawParams[0]) ? rawParams[0] : rawParams;
+	const sources = Array.isArray(rawParams[0]) ? rawParams[0] : rawParams;
 
-	assertValidInputs(inputs);
+	assertValidSources(sources);
 
-	return new RawContextor(inputs, combiner, options?.isEqual);
+	return new RawContextor(sources, combiner, options?.isEqual);
 }
 
-function assertValidInputs(inputs: unknown[]): asserts inputs is Tuple<ContextorInput<unknown, unknown>>
+function assertValidSources(sources: unknown[]): asserts sources is Tuple<ContextorSource<unknown, unknown>>
 {
-	if (!inputs.every((input) => isContext(input) || isContextor(input)))
+	if (!sources.every((source) => isContext(source) || isContextor(source)))
 	{
-		if (inputs.some(isReactContext))
+		if (sources.some(isReactContext))
 		{
 			throw new Error(
-				"createContextor received React.Context input, but Contexto.Context input is required"
+				"createContextor received React.Context source, but Contexto.Context source is required"
 			);
 		}
 
-		const inputTypes = inputs.map(
-			(input) => (typeof input === "function" ? input.toString() : typeof input)
+		const sourceTypes = sources.map(
+			(source) => (typeof source === "function" ? source.toString() : typeof source)
 		).join(", ");
 
 		throw new Error(
-			`createContextor inputs must be Context or Contextor, but received the following types: [${inputTypes}]`
+			`createContextor sources must be Context or Contextor, but received the following types: [${sourceTypes}]`
 		);
 	}
 }

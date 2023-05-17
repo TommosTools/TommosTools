@@ -5,12 +5,12 @@ A library for creating "contextors", which efficiently select and combine values
 from React contexts.
 
  - **Contextors combine the values of multiple contexts** to compute a single value
- which is updated when any of its input values change.
+ which is updated when any of its source values change.
  - **Contextors are efficient and stable.** A contextor will always produce the same
- output given the same input values.
- - **Contextors are composable.** They can be used as inputs to other contextors.
+ output given the same source values.
+ - **Contextors are composable.** They can be used as sources to other contextors.
  - **Contextors can be parameterized.** A contextor's combining function can accept an
- extra parameter alongside the context-dependent input values.
+ extra parameter alongside the context-dependent source values.
 
 ## Basic Usage
 
@@ -62,9 +62,9 @@ from React contexts.
 
 ## Computing data with contextors
 
-Contextors are constructed using `createContextor`. They require an array of inputs,
+Contextors are constructed using `createContextor`. They require an array of sources,
 each of which is a Contextor or a `Contexto.Context` object, and a combining function,
-which returns data based on the current values associated with those inputs.
+which returns data based on the current values associated with those sources.
 
 A very simple contextor might depend on the value of a single context:
 
@@ -139,14 +139,14 @@ interface:
 
 ## Caching
 
-Each contextor caches the results of previous evaluations, based on previous input values.
+Each contextor caches the results of previous evaluations, based on previous source values.
 The cache is shared between all consumers of a contextor anywhere in the app.
 
-The precise caching behaviour depends on the types of the inputs (i.e. the values of
+The precise caching behaviour depends on the types of the sources (i.e. the values of
 the contextor's dependent contexts and contextors, and the argument if any):
 
- - If all inputs are `object` values, the contextor will always provide the same output
-   for those inputs:
+ - If all sources provide `object` values, the contextor will always provide the same output
+   for those source values:
 
 ```javascript
     const ObjectContext = createContext({});
@@ -167,8 +167,8 @@ the contextor's dependent contexts and contextors, and the argument if any):
     }
 ```
 
- - If all inputs are non-`object` values, the contextor caches the most recent output,
-   which it returns only if the inputs match their values in the previous evaluation
+ - If all sources provide non-`object` values, the contextor caches the most recent output,
+   which it returns only if the sources provide the same value as previously
    (i.e. memoization)
 
 ```javascript
@@ -188,7 +188,7 @@ the contextor's dependent contexts and contextors, and the argument if any):
     }
 ```
 
- - If the inputs contain both `object` and non-`object` values then a combination caching
+ - If the sources provide both `object` and non-`object` values then a combination caching
    strategy is employed – the last value for each combination of `object` values is memoized,
    keyed by the non-`object` values:
 
@@ -275,7 +275,7 @@ creation and usage.
       (getters, setters, fieldName) => ({ ...getters, ...setters })
     );
 
-    const TextInput = (fieldName) => {
+    const TextSource = (fieldName) => {
       const { value, touched, setValue } = useContextor(FieldUtil, fieldName);
 
       return <>
@@ -300,8 +300,6 @@ a context provider that subscribes to the store's value:
       [ReduxContext, SomeContextor],
       (rootStore, someValue) => { /* ... */ }
     );
-
-TODO FIXME -- rename inputs to "sources" / "sourceValues"
 
 
 ## Advanced Usage
