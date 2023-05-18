@@ -23,7 +23,8 @@ from React contexts.
 
 ## Simple example
 
-    # Create some Contexts
+```javascript
+    // Create some Contexts
     const UserContext  = contexto.createContext({
       firstName: "Henry",
       lastName:  "Lemming",
@@ -36,15 +37,15 @@ from React contexts.
       { id: 4, name: "Miners"   },
     ]);
 
-    # Create a Contextor that takes a TeamsContext value,
-    # and returns a value derived from that
+    // Create a Contextor that takes a TeamsContext value,
+    // and returns a value derived from that.
     const TeamsLookup = createContextor(
       [TeamsContext],
       (teams) => Object.fromEntries(teams.map(team => [team.id, team]))
     );
 
-    # Create a Contextor that takes values from UserContext and a different Contextor,
-    # and returns a value derived from those
+    // Create a Contextor that takes values from UserContext and a different Contextor,
+    // and returns a value derived from those.
     const UserSummary = createContextor(
       [UserContext, TeamsLookup],
       (user, teamsById) => ({
@@ -59,6 +60,7 @@ from React contexts.
       const { name, teamNames } = useContextor(UserSummary);
       return <div><b>{name}</b> ({ teamNames || "no teams" })</div>;
     }
+```
 
 ## Computing data with contextors
 
@@ -68,23 +70,28 @@ which returns data based on the current values associated with those sources.
 
 A very simple contextor might depend on the value of a single context:
 
+```javascript
     const BookCount =
       createContextor(
         [BooksContext],           // A context defined somewhere
         (books) => books.length   // Operates on the local value of the context
       );
+```
 
 More complex contextors can depend on the values of multiple contexts:
 
+```javascript
     const CurrentBook =
       createContextor(
         [CurrentBookIdContext, BooksContext],
         (currentBookId, books) =>
           books.filter(book => book.id === currentBookId)[0]
       );
+```
 
 Contextors can also depend on the values of other contextors:
 
+```javascript
     const BookSummary =
       createContextor(
         [CurrentBook, AuthorsContext],
@@ -93,12 +100,14 @@ Contextors can also depend on the values of other contextors:
           author: authors.filter(book.authorId === author.id)
         })
       );
+```
 
 ## Parameterized contextors
 
 A contextor can accept an extra argument in its combining function. This argument must
 be provided as a second argument to `useContextor`:
 
+```javascript
     const PAGE_SIZE = 5;
 
     const ListPager = createContextor(
@@ -114,12 +123,14 @@ be provided as a second argument to `useContextor`:
             <Item key={i} item={item} /> }
         </>);
       };
+```
 
 The argument supplied to `useContextor` is passed to all contextors that are
 dependencies of the primary contextor. It's important that the expected arguments
 to the contextors are compatible – this is enforced if you're using the TypeScript
 interface:
 
+```javascript
     const MultiplyContextor = createContextor(
       [NumberContext],
       (contextValue: number, arg: number) => contextValue * arg
@@ -136,6 +147,7 @@ interface:
     // TYPE ERROR: arg of type string is not compatible with arg of type number
       (multipliedValue: number, arg: string) => arg.repeat(multipliedValue)
     )
+```
 
 ## Caching
 
@@ -232,6 +244,7 @@ creation and usage.
 
 ## Formik-like example
 
+```javascript
     const FormContext = createContext({});
 
     const FormContextProvider = ({ initialValues, initialTouched, children }) =>
@@ -283,12 +296,14 @@ creation and usage.
         { touched && "*" }
       </>
     };
+```
 
 ## Integration with Redux
 
 It's straightforward to use the Redux store in contextors, simply by defining
 a context provider that subscribes to the store's value:
 
+```javascript
     const ReduxContext = contexto.createContext({});
 
     const ReduxProvider = ({ children }) => {
@@ -300,10 +315,12 @@ a context provider that subscribes to the store's value:
       [ReduxContext, SomeContextor],
       (rootStore, someValue) => { /* ... */ }
     );
-
-
-## Advanced Usage
-
-Contextors can be created 
+```
 
 ## Contextors vs selectors
+
+Contextors are heavily inspired by [Redux's selectors](https://redux.js.org/usage/deriving-data-selectors),
+with the main difference being the scoping of data.
+
+Selectors operate on the Redux store, which contains data available to the entire application.
+Contextors operate on local context values, 
