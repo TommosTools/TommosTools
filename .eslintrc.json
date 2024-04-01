@@ -13,7 +13,8 @@
 	"rules": {
 		"import/no-extraneous-dependencies": "off",
 		"react/react-in-jsx-scope": "off",
-		"@typescript-eslint/indent": ["error", "tab", { "SwitchCase": 1, "ignoredNodes": ["ConditionalExpression"] }],
+		"indent": [2, "tab", { "SwitchCase": 1, "VariableDeclarator": 1, "ignoredNodes": ["ConditionalExpression", "ArrowFunctionExpression > BlockStatement"] }],
+		"@typescript-eslint/indent": ["error", "tab", { "SwitchCase": 1, "ignoredNodes": ["ConditionalExpression", "ArrowFunctionExpression > BlockStatement"] } ],
 		"@typescript-eslint/quotes": ["error", "double"],
 		"@typescript-eslint/brace-style": ["error", "allman"],
 		"@typescript-eslint/no-use-before-define": ["error", { "functions": false, "classes": true, "variables": false, "allowNamedExports": false }],
@@ -21,6 +22,8 @@
 		"curly": ["error", "multi-or-nest"],
 		"max-len": ["error", 120],
 		"eol-last": ["error", "never"],
+		"key-spacing": ["error", { "mode": "minimum" }],
+		"implicit-arrow-linebreak": ["off"],
 		"nonblock-statement-body-position": ["error", "below"],
 		"no-trailing-spaces": ["error", { "ignoreComments": true }],
 		"no-tabs": ["off"],
@@ -37,7 +40,6 @@
 			}
 		],
 		"@typescript-eslint/no-extra-parens": "off",
-		"indent": [2, "tab", { "SwitchCase": 1, "VariableDeclarator": 1 }],
 		"no-tabs": 0,
 		"react/prop-types": 0,
 		"react/jsx-indent": [2, "tab"],
