@@ -257,3 +257,91 @@ test("reconfigure", () =>
 		});
 	expect(screen.getByTestId("consumer")).toHaveTextContent("updated-selector(second value) / render #7");
 });
+
+test("deps", () =>
+{
+	const MyContext	= createContext("default value", { contextId: "MyContext" });
+	const Provider	= ({ children }: { children: ReactNode }) =>
+		<MyContext.Provider value="first value" children={children} />;
+
+	let renderCount = 0;
+	let updatePrefix: (value: string) => void;
+	let updateSuffix: (value: string) => void;
+
+	const Consumer = () =>
+		{
+			const [prefix, setPrefix] = useState("default prefix");
+			const [suffix, setSuffix] = useState("default suffix");
+
+			updatePrefix = setPrefix;
+			updateSuffix = setSuffix;
+
+			const value = useContextSelector(MyContext, (val) => `[${prefix}] ${val} [${suffix}]`, [prefix]);
+
+			renderCount += 1;
+
+			return <span data-testid="consumer">{`${value} / render #${renderCount}`}</span>;
+		};
+
+	const App = () => (
+		<Provider>
+			<Consumer />
+		</Provider>
+	);
+
+	render(<App />);
+	expect(screen.getByTestId("consumer"))
+		.toHaveTextContent("[default prefix] first value [default suffix] / render #1");
+
+	// Consumer will re-render twice: once for the changed prefix input, once in response to the updated computed state
+	act(() => updatePrefix("updated prefix"));
+	expect(screen.getByTestId("consumer"))
+		.toHaveTextContent("[updated prefix] first value [default suffix] / render #3");
+
+	// Consumer will re-render once: updating the suffix state does not trigger a re-render for the computed value,
+	// because it is not listed as a dependency
+	act(() => updateSuffix("updated suffix"));
+	expect(screen.getByTestId("consumer"))
+		.toHaveTextContent("[updated prefix] first value [default suffix] / render #4");
+});
+
+test("key-based selector", () =>
+{
+	type ContentType = { key1: string, key2: string };
+
+	const MyContext	= createContext({ key1: "1", key2: "2" }, { contextId: "MyContext" });
+	const Provider	= ({ children }: { children: ReactNode }) =>
+		<MyContext.Provider
+			value={useLiteral({ key1: "value 1", key2: "value 2" })}
+			children={children}
+		/>;
+
+	let renderCount = 0;
+	let updateKey: (key: keyof ContentType) => void;
+
+	const Consumer = () =>
+	{
+		const [key, setKey]	= useState<keyof ContentType>("key1");
+
+		updateKey = setKey;
+
+		const value = useContextSelector(MyContext, key);
+
+		renderCount += 1;
+
+		return <span data-testid="consumer">{`${value} / render #${renderCount}`}</span>;
+	};
+
+	const App = () => (
+		<Provider>
+			<Consumer />
+		</Provider>
+	);
+
+	render(<App />);
+	expect(screen.getByTestId("consumer")).toHaveTextContent("value 1 / render #1");
+
+	// Consumer will re-render twice: once for the changed key, once in response to the updated computed state
+	act(() => updateKey("key2"));
+	expect(screen.getByTestId("consumer")).toHaveTextContent("value 2 / render #3");
+});

@@ -6,21 +6,8 @@ import {
 import {
 	useCallback,
 	useEffect,
-	useReducer,
+	useState,
 } from "react";
-
-type State<TInput, TSelector extends (value: TInput) => unknown> = {
-	latestInput:	TInput,
-	selection:		ReturnType<TSelector>;
-	selector:		TSelector;
-	context:		SubscriptionContext<TInput>;
-	unsubscribe:	Unsubscriber;
-};
-
-type Action<TInput, TSelector extends (value: TInput) => unknown> = (
-	| { type: "update", value: TInput }
-	| { type: "reconfigure", context: SubscriptionContext<TInput>, selector: TSelector }
-);
 
 /**
  * Extract a value from a context's latest value.
@@ -101,90 +88,55 @@ export function useContextSelector<TInput, TOutput>(
 		rawSelector instanceof Function ? (deps || []) : [rawSelector]
 	);
 
-	type Selector = typeof selector;
-
-	const listenForUpdates = (subscriptionContext: SubscriptionContext<TInput>): [TInput, Unsubscriber] =>
-		subscribe(subscriptionContext, (value) => dispatch({ type: "update", value }));
-
-	const [state, dispatch] = useReducer(
-		(prevState: State<TInput, Selector>, action: Action<TInput, Selector>) =>
-			{
-				if (action.type === "update")
-				{
-					const selection = prevState.selector(action.value);
-
-					// Only update if the selection has changed
-					if (selection !== prevState.selection)
-					{
-						return {
-							...prevState,
-							selection:		prevState.selector(action.value),
-							latestInput:	action.value,
-						};
-					}
-				}
-				else if (action.type === "reconfigure")
-				{
-					if (prevState.context !== action.context || prevState.selector !== action.selector)
-					{
-						let { latestInput, unsubscribe } = prevState;
-
-						// If the context has changed(!), unsubscribe from the old and subscribe to the new
-						if (action.context !== prevState.context)
-						{
-							prevState.unsubscribe();
-
-							[latestInput, unsubscribe] = listenForUpdates(action.context);
-						}
-
-						// Only recompute the selected value if the selector or the input has changed
-						const selection = (
-							(action.selector !== prevState.selector || latestInput !== prevState.latestInput)
-								?	action.selector(latestInput)
-								:	prevState.selection
-						);
-
-						return {
-							latestInput,
-							selection,
-							selector:	action.selector,
-							context:	action.context,
-							unsubscribe,
-						};
-					}
-				}
-
-				return prevState;
-			},
-		null,
+	const subscribeWrapper = useCallback(
 		() =>
 			{
-				const [latestInput, unsubscribe]	= listenForUpdates(context);
-				const selection						= selector(latestInput);
-
-				return {
-					latestInput,
-					selection,
-					selector,
+				const [value, unsubscribe] = subscribe(
 					context,
-					unsubscribe,
-				};
-			}
+					(newValue) =>
+						setState((state) =>
+							{
+								const selection = selector(newValue);
+
+								return (selection !== state.selection)
+									?	{ value: newValue, selection, selector, context, unsubscribe }
+									:	state;
+							})
+				) as [TInput, Unsubscriber];
+
+				return { value, unsubscribe };
+			},
+		[context, selector, subscribe]
 	);
+
+	const [state, setState] = useState(() =>
+		{
+			const { value, unsubscribe } = subscribeWrapper();
+
+			return { value, selection: selector(value), selector, context, unsubscribe };
+		});
 
 	useEffect(
 		() =>
 			{
-				//
-				// Listen for changed context and/or selector.
-				// Although the reconfigure action is a no-op if context and selector are both unchanged,
-				// any call to dispatch() causes a re-render, so we guard against that.
-				//
-
 				if (context !== state.context || selector !== state.selector)
-					dispatch({ type: "reconfigure", context, selector });
+				{
+					let { value, unsubscribe, selection } = state;
+
+					if (context !== state.context)
+					{
+						state.unsubscribe();
+						({ value, unsubscribe } = subscribeWrapper());
+					}
+
+					// Don't recompute the selection if just the context has changed and its value is the same
+					if (selector !== state.selector || value !== state.value)
+						selection = selector(value);
+
+					setState({ value, selection, selector, context, unsubscribe });
+				}
 			},
-		[context, state.context, selector, state.selector]
+		[state, context, selector, subscribeWrapper]
 	);
 
 	return state.selection;

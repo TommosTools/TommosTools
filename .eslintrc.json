@@ -28,6 +28,7 @@
 		"no-trailing-spaces": ["error", { "ignoreComments": true }],
 		"no-tabs": ["off"],
 		"no-restricted-syntax": ["off", { "selector": "ForOfStatement" }],
+		"object-curly-newline": ["error", { "consistent": true }],
 		"@typescript-eslint/comma-dangle": ["error", { "arrays": "always-multiline", "objects": "always-multiline", "imports": "always-multiline", "exports": "always-multiline", "functions": "never" }],
 		"@typescript-eslint/no-unused-vars": "error",
 		"@typescript-eslint/no-explicit-any": "error",
