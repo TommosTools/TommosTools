@@ -31,7 +31,7 @@ based on a user-space subscription model, with a few extensions:
  - **Imperative value modification** using methods exposed by hook and `Provider` ref handles,
  allowing extremely efficient updates with minimal re-rendering
 
-[`Contexto` can also wrap standard `React.Context` instances](#interoperability), so you can use the
+[`Contexto` can also wrap standard `React.Context` instances](interoperability), so you can use the
 new hotness to consume contexts from existing code and external libraries.
 
 ---
