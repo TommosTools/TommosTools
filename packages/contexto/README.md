@@ -83,7 +83,9 @@ yarn add contexto react scheduler
 
 Contexto comes with its own TypeScript definitions.
 
-## Documentation
+---
+
+## Documentation
 
  * [API listing](https://tommostools.github.io/TommosTools/contexto/api)
  * [Selective subscriptions](https://tommostools.github.io/TommosTools/contexto/selective-subscriptions)
