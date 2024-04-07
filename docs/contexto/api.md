@@ -5,6 +5,17 @@ contexto
 
 This page describes the functions and associated components provided by the [Contexto library](.).
 
+* [`createContext`](#createContext)
+* [`Provider`](#Provider)
+* [`Consumer`](#Consumer)
+* [`createCompatibleContext`](#createCompatibleContext)
+* [`createProxyContext`](#createProxyContext)
+* [`useContext`](#useContext)
+* [`useContexts`](#useContexts)
+* [`useContextUpdate`](#useContextUpdate)
+* [`useBridgeValue`](#useBridgeValue)
+
+---
 
 ### <a name="createContext"></a>`createContext`
 
