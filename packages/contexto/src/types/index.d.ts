@@ -66,18 +66,18 @@ export type ConsumerComponentType<T> = ExoticComponent<ConsumerProps<T>>;
 export type IsEqual<T> = (oldValue: T, newValue: T, context: Context<T>) => boolean;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type ContextType<C extends Context<any>> = C extends Context<infer T> ? T : never;
+export type ContextType<TContext extends Context<any>> = TContext extends Context<infer T> ? T : never;
 
 export type ContextTuple	= [] | [Context<unknown>, ...Context<unknown>[]];	// Ensure that tuple mapping works
 export type ContextDict		= { [K: string]: Context<unknown> };
 
-export type ContextTypes<Contexts> = Contexts extends infer ContextsT ? {
-	[Index in keyof ContextsT]: (
-		ContextsT[Index] extends Context<infer T> ? T : ContextsT[Index]
+export type ContextTypes<Contexts> = Contexts extends infer TContexts ? {
+	[Index in keyof TContexts]: (
+		TContexts[Index] extends Context<infer T> ? T : TContexts[Index]
 	)
 } : never;
 
-export type SomeTypeFor<Contexts> = ContextTypes<Contexts>[keyof ContextTypes<Contexts>];
+export type SomeTypeFor<TContexts> = ContextTypes<TContexts>[keyof ContextTypes<TContexts>];
 
 export type ContextOptions = Partial<{
 	contextId: ContextId,
@@ -159,10 +159,10 @@ export declare function useContext<T>(context: Context<T>, isEqual?: IsEqual<T>)
  * @returns An array (or object) mapping each context in the input to the corresponding
  * context value for the calling component.
  */
-export declare function useContexts<Contexts extends ContextTuple | ContextDict>(
-	contexts: Contexts,
-	isEqual?: IsEqual<SomeTypeFor<Contexts>>
-): ContextTypes<Contexts>;
+export declare function useContexts<TContexts extends ContextTuple | ContextDict>(
+	contexts: TContexts,
+	isEqual?: IsEqual<SomeTypeFor<TContexts>>
+): ContextTypes<TContexts>;
 
 /**
  * Prepare a function to update the value of a Contexto context.

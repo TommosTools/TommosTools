@@ -36,7 +36,7 @@ export function useContext<T>(
 
 	const instance = useReactContext(InstanceStackContext)[getContextId(context)] as ContextInstance<T>;
 
-	// Store the value as a tuple to allow forced refresh with custom isEqual
+	// Store the value as a tuple rather than raw value, to allow forced refresh with custom isEqual
 	const [value, setValue] = useState<[T]>(
 		[instance ? instance.snapshot : context[CONTEXTO_KEY].defaultValue]
 	);
@@ -46,7 +46,6 @@ export function useContext<T>(
 			(newValue) =>
 			{
 				setValue(
-					// eslint-disable-next-line @typescript-eslint/no-extra-parens
 					(oldValue) => (isEqual(oldValue[0], newValue, context) ? oldValue : [newValue])
 				);
 			}

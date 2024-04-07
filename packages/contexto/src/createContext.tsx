@@ -50,7 +50,7 @@ export function createContext<T>(defaultValue: T, options?: ContextOptions): Sub
 	{
 		const displayName = options?.displayName;
 
-		// Bit of messiness here so we can close around `context`
+		// Bit of messiness here so we can close around `internalContext`
 		const internalContext = { displayName } as InternalContext<T>;
 
 		const Provider = createProvider(id, undefined, defaultValue) as ComponentType<unknown>;
@@ -71,8 +71,10 @@ export function createCompatibleContext<T>(defaultValue: T, options?: ContextOpt
 {
 	return createOrRetrieve(options?.contextId, (id: ContextId) =>
 	{
-		// Can treat vanilla React context as an internal context during initialisation only
 		const reactContext		= createReactContext(defaultValue);
+
+		// Can treat vanilla React context as an internal context just for the purposes of initialisation,
+		// while we add in the extra properties that make it a Contexto context.
 		const internalContext	= reactContext as InternalContext<T>;
 
 		const Provider = createProvider(id, reactContext, defaultValue) as ComponentType<unknown>;
@@ -96,7 +98,8 @@ export function createProxyContext<T>(context: ReactContext<T>, options?: ProxyC
 		if (IS_NON_PRODUCTION_ENVIRONMENT && CONTEXTO_KEY in context)
 			throw new Error("createProxyContext(..) expects a React.Context, not a contexto.Context");
 
-		// NAUGHTY!  Shouldn't go fossicking around the react internals
+		// NAUGHTY!  Shouldn't go fossicking around the react internals.
+		// This has however been the appropriate field for over half a decade and it's super convenient so ¯\_(ツ)_/¯
 		// eslint-disable-next-line no-underscore-dangle
 		const defaultValue = (context as unknown as { _currentValue: T })._currentValue;
 
