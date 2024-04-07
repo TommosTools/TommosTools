@@ -82,18 +82,3 @@ yarn add contexto react scheduler
 ```
 
 Contexto comes with its own TypeScript definitions.
-
-## Documentation
-
- * [API listing](api/)
- * [Selective subscriptions](selective-subscriptions/)
- * [Imperative updates](imperative-updates/)
- * [Caveats](caveats/)
- * [Interoperability](interoperability/)
- * [Working Example](example/)
-
----
-
-## Inspiration
-
-See the wonderful work of [Dai Shi](https://github.com/dai-shi/), specifically [`useContextSelector`](https://github.com/dai-shi/use-context-selector/).
