@@ -26,7 +26,3 @@ object that can be passed to Contexto's `useContext` and `useContexts` functions
 resulting "proxy context" is read-only – it does not have an associated Provider, and cannot be
 imperatively updated – it can be used to take advantage of selective subscriptions and multiple
 context ingestion.
-
----
-
-
