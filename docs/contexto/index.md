@@ -8,7 +8,7 @@ Enhanced React contexts in userland
 
 ---
 
-## The Problem
+## <a name="problem"></a>The Problem
 
 React's `Context` and `useContext` are a convenient way to share values
 within a dynamic scope, and can avoid messy prop-drilling.
@@ -19,7 +19,7 @@ provided to a large component tree.
 
 ---
 
-## The Offering
+## <a name="offering"></a>The Offering
 
 `Contexto` provides a drop-in replacement for the standard `Context` implementation
 based on a user-space subscription model, with a few extensions:
@@ -36,7 +36,7 @@ new hotness to consume contexts from existing code and external libraries.
 
 ---
 
-## Usage
+## <a name="usage"></a>Usage
 
 ```jsx
 import { createContext, useContexts, useContextUpdate } from "contexto";
@@ -71,7 +71,7 @@ function App() {
 }
 ```
 
-## Installation
+## <a name="installation"></a>Installation
 
 Contexto is compatible with React 16.8+, React Native 16.8+ and Preact 10+.
 You'll need to install one of those yourself. If you're using React or React Native,
@@ -85,7 +85,7 @@ Contexto comes with its own TypeScript definitions.
 
 ---
 
-## Documentation
+## <a name="documentation"></a>Documentation
 
  * [API listing](api)
  * [Selective subscriptions](selective-subscriptions)
@@ -96,6 +96,6 @@ Contexto comes with its own TypeScript definitions.
 
 ---
 
-## Inspiration
+## <a name="inspiration"></a>Inspiration
 
 See the wonderful work of [Dai Shi](https://github.com/dai-shi/), specifically [`useContextSelector`](https://github.com/dai-shi/use-context-selector/).
