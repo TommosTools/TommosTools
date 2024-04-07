@@ -24,11 +24,11 @@ provided to a large component tree.
 `Contexto` provides a drop-in replacement for the standard `Context` implementation
 based on a user-space subscription model, with a few extensions:
 
- - **Custom equality functions** to allow consumers to ignore irrelevant updates
+ - **[Custom equality functions](selective-subscriptions)** to allow consumers to ignore irrelevant updates
 
- - **`useContexts()` hook** to subscribe to multiple contexts
+ - **[`useContexts()`](api#useContexts) hook** to subscribe to multiple contexts
 
- - **Imperative value modification** using methods exposed by hook and `Provider` ref handles,
+ - **[Imperative value modification](imperative-updates)** using methods exposed by hook and `Provider` ref handles,
  allowing extremely efficient updates with minimal re-rendering
 
 [`Contexto` can also wrap standard `React.Context` instances](interoperability), so you can use the
@@ -73,7 +73,7 @@ function App() {
 
 ## <a name="installation"></a>Installation
 
-Contexto is compatible with React 16.8+, React Native 16.8+ and Preact 10+.
+Contexto is compatible with [React 16.8+](https://react.dev/), [React Native](https://reactnative.dev/) 16.8+ and [Preact 10+](https://preactjs.com/).
 You'll need to install one of those yourself. If you're using React or React Native,
 you'll also need to install `scheduler`.
 
