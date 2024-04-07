@@ -1,10 +1,10 @@
-contexto
+<a href=".">contexto</a>
 ========
 
 # Selective subscriptions
 
 This page describes a way of improving the performance of your context subscriptions
-when using the [Contexto library](../), by specifying which changes to the top-level
+when using the [Contexto library](.), by specifying which changes to the top-level
 context value can be ignored, thus avoiding re-renders.
 
 Each instance of `useContext`, `useContexts` or `Context.Consumer` subscribes to value updates,

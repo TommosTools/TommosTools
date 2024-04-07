@@ -1,4 +1,4 @@
-contexto
+<a href=".">contexto</a>
 ========
 
 [![npm](https://img.shields.io/npm/v/contexto)](https://www.npmjs.com/package/contexto)

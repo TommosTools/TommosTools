@@ -1,9 +1,9 @@
-contexto
+<a href=".">contexto</a>
 ========
 
 # Example
 
-The following is a small working example of a React app that uses the [Contexto library](../).
+The following is a small working example of a React app that uses the [Contexto library](.).
 
 ```jsx
 import React, { useCallback, useRef } from "react";

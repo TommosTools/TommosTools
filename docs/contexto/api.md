@@ -1,9 +1,9 @@
-contexto
+<a name=".">contexto</a>
 ========
 
 # API
 
-This page describes the functions and associated components provided by the [Contexto library](../).
+This page describes the functions and associated components provided by the [Contexto library](.).
 
 
 ### <a name="createContext"></a>`createContext`

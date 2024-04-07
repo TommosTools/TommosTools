@@ -1,9 +1,9 @@
-contexto
+<a href=".">contexto</a>
 ========
 
 # Interoperability
 
-This page discusses the interoperability considerations for the [Contexto library](../).
+This page discusses the interoperability considerations for the [Contexto library](.).
 
 
 Although standard Contexto contexts look a lot like standard React contexts, they are not compatible.

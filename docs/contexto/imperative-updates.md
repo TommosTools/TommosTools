@@ -1,10 +1,10 @@
-contexto
+<a href=".">contexto</a>
 ========
 
 ## Imperative updates
 
 This page describes a distinctly "non-Reacty" alternative to modifying the top-level context value
-when using the [Contexto library](../).
+when using the [Contexto library](.).
 
 
 When working with standard React contexts, the value propagated by each Provider is determined

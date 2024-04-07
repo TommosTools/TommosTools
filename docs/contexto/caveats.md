@@ -1,10 +1,10 @@
-contexto
+<a href=".">contexto</a>
 ========
 
 # Caveats
 
 This page contains notes on a few inconvenient or possibly surprising behaviours associated
-with the [Contexto library](../)
+with the [Contexto library](.)
 
 #### **Imperative updates cannot be applied to the default context value**
 During development, `useContextUpdate` will throw an error if it is called without an appropriate
