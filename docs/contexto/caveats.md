@@ -26,7 +26,7 @@ By default, Fast Refresh on a Contexto-powered app will default back to the cont
 as determined by the `value`/`initialValue` props on each Provider. To avoid this problem,
 make sure to always specify an arbitrary (but consistent) `contextId` when calling `createContext`:
 
-```javascript
+```jsx
 const MyUserContext = createContext(defaultValue, { contextId: "Main user context" });
 ```
 

@@ -5,7 +5,7 @@ contexto
 
 The following is a small working example of a React app that uses the [Contexto library](../).
 
-```javascript
+```jsx
 import React, { useCallback, useRef } from "react";
 import ReactDOM from "react-dom";
 import { createContext, useContext, useContextUpdate } from "contexto";

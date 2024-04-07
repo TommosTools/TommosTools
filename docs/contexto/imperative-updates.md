@@ -10,7 +10,7 @@ when using the [Contexto library](../).
 When working with standard React contexts, the value propagated by each Provider is determined
 entirely by what is passed to the Provider's `value` prop:
 
-```javascript
+```jsx
 const TickContext = createContext(0);
 
 function useTick() {
@@ -40,7 +40,7 @@ function App() {
 This expensive re-rendering can be avoided by packaging the context value management into
 its own component, so that the `children` are created outside the Provider:
 
-```javascript
+```jsx
 function TickProvider({ children })
 {
     const tick = useTick();
@@ -71,7 +71,7 @@ and does not re-render the Provider itself.
 An updater accepts a single parameter, which can be either the new value or a function
 that prepares a new value given the previous value:
 
-```javascript
+```jsx
 const update = useContextUpdate(MyNumericContext);
 update(123);            // MyNumericContext's value will be updated to 123
 update(old => old * 2); // MyNumericContext's value will be updated to 246
@@ -82,7 +82,7 @@ As with a `useState` setter, an updater is stable – it will not change for a
 given Context within the calling component. We can build more complex functionality
 on top of the raw updater:
 
-```javascript
+```jsx
 function useContextDispatch(SomeContext, reducer) {
     const update = useContextUpdate(SomeContext);
     return useCallback(

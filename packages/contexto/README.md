@@ -85,12 +85,12 @@ Contexto comes with its own TypeScript definitions.
 
 ## Documentation
 
- * [API listing](api/)
- * [Selective subscriptions](selective-subscriptions/)
- * [Imperative updates](imperative-updates/)
- * [Caveats](caveats/)
- * [Interoperability](interoperability/)
- * [Working Example](example/)
+ * [API listing](https://tommostools.github.io/TommosTools/contexto/api)
+ * [Selective subscriptions](https://tommostools.github.io/TommosTools/contexto/selective-subscriptions)
+ * [Imperative updates](https://tommostools.github.io/TommosTools/contexto/imperative-updates)
+ * [Caveats](https://tommostools.github.io/TommosTools/contexto/caveats)
+ * [Interoperability](https://tommostools.github.io/TommosTools/contexto/interoperability)
+ * [Working Example](https://tommostools.github.io/TommosTools/contexto/example)
 
 ---
 

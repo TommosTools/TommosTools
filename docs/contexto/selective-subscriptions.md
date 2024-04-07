@@ -14,7 +14,7 @@ When a Provider's value is updated, Contexto consults each of the subscribers, u
 function to compare the new value to the previous value provided to the subscriber.
 A subscriber is only notified of the update (and thus re-rendered) if its equality function returns false.
 
-```javascript
+```jsx
 function isJsonEqual(oldValue, newValue) {
     return JSON.stringify(oldValue) === JSON.stringify(newValue);
 }
@@ -26,7 +26,7 @@ associated with the Provider being compared.
 This third parameter may be useful when subscribing to multiple contexts with `useContexts`,
 if the different contexts require different notions of equality, e.g.
 
-```javascript
+```jsx
 function customIsEqual(oldValue, newValue, context) {
     if (context === MyNumericContext)     // Approximately equal
         return Math.abs(oldValue - newValue) < 1e-3;
