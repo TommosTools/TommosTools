@@ -83,6 +83,8 @@ yarn add contexto react scheduler
 
 Contexto comes with its own TypeScript definitions.
 
+---
+
 ## Documentation
 
  * [API listing](api)
