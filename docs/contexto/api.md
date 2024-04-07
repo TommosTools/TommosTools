@@ -35,7 +35,7 @@ The context object has a few properties:
  - `MyContext.Consumer` is an alternative way to read the context value using a render prop.
  - `MyContext.displayName` is a string used by React DevTools when displaying the context.
 
-See [the React documentation on Context objects](https://reactjs.org/docs/context.html] for
+See [the React documentation on Context objects](https://react.dev/learn/passing-data-deeply-with-context) for
 more details on the standard operation of contexts using Providers and Consumers.
 
 ---
@@ -121,10 +121,10 @@ const MyCompatibleContext = contexto.createCompatibleContext(defaultValue, { dis
 ```
 
 Creates a special Context object for use with Contexto's extended context operations which is also
-fully compatible with the standard React context operations, including [use by class components](https://reactjs.org/docs/context.html#classcontexttype).
+fully compatible with the standard React context operations, including [use by class components](https://react.dev/reference/react/Component).
 This has performance considerations – see [Interoperability](interoperability) for more details.
 
-**Parameters and return value are the same as for (`createContext`)[#createcontext].**
+**Parameters and return value are the same as for [`createContext`](createcontext).**
 
 ---
 
