@@ -83,3 +83,22 @@ test("ClassConsumer with useContextUpdate() update", () =>
 	expect(screen.getByTestId("Context1.defaultValue")).toHaveTextContent("default value");
 	expect(screen.getByTestId("Context1.Provider[0]")).toHaveTextContent("value2");
 });
+
+test("Context.Consumer", () =>
+{
+	render(
+		<>
+			<Context1.Consumer>
+				{ (value) => <span data-testid="Context1.defaultValue">{value}</span> }
+			</Context1.Consumer>
+			<Context1.Provider value="value1">
+				<Context1.Consumer>
+					{ (value) => <span data-testid="Context1.Provider[0]">{value}</span> }
+				</Context1.Consumer>
+			</Context1.Provider>
+		</>
+	);
+
+	expect(screen.getByTestId("Context1.defaultValue")).toHaveTextContent("default value");
+	expect(screen.getByTestId("Context1.Provider[0]")).toHaveTextContent("value1");
+});
