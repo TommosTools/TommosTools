@@ -37,11 +37,7 @@
     }
   },
   "dependencies": {
-    "@types/react": "^18.0.27",
     "contexto": "^0.1.5"
-  },
-  "devDependencies": {
-    "@types/react": "^18.0.27"
   },
   "jest": {
     "testEnvironment": "jsdom"

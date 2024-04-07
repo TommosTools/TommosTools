@@ -43,6 +43,9 @@
     },
     "react-native": {
       "optional": true
+    },
+    "scheduler": {
+      "optional": true
     }
   },
   "type": "module",
