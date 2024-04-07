@@ -1,4 +1,4 @@
-<a href=".">contexto</a>
+contexto
 ========
 
 # Interoperability

@@ -1,4 +1,4 @@
-<a name=".">contexto</a>
+contexto
 ========
 
 # API
