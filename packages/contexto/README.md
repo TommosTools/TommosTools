@@ -73,9 +73,12 @@ function App() {
 
 ## Installation
 
-Contexto is compatible with [React 16.8+](https://react.dev/), [React Native](https://reactnative.dev/) 16.8+ and [Preact 10+](https://preactjs.com/).
-You'll need to install one of those yourself. If you're using React or React Native,
-you'll also need to install `scheduler`.
+Contexto is compatible with
+[React](https://react.dev/) 16.8+,
+[React Native](https://reactnative.dev/) 16.8+
+and [Preact](https://preactjs.com/) 10+.
+You'll need to install one of those yourself.
+If you're using React or React Native, you'll also need to install `scheduler`.
 
 ```bash
 yarn add contexto react scheduler
