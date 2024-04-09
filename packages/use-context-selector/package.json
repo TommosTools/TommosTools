@@ -1,6 +1,6 @@
 {
   "name": "@tommostools/use-context-selector",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Hook for simple context slicing in React",
   "keywords": [
     "react",
