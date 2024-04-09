@@ -1,8 +1,8 @@
 contextors
 ==========
 
-[![npm](https://img.shields.io/npm/v/contextors)](https://www.npmjs.com/package/contextors)
-[![size](https://img.shields.io/bundlephobia/minzip/contextors)](https://bundlephobia.com/result?p=contextors)
+[![npm](https://img.shields.io/npm/v/@tommostools/contextors)](https://www.npmjs.com/package/@tommostools/contextors)
+[![size](https://img.shields.io/bundlephobia/minzip/@tommostools/contextors)](https://bundlephobia.com/result?p=@tommostools/contextors)
 
 A library for creating "contextors", which efficiently select and combine values
 from React contexts.
@@ -60,6 +60,20 @@ from React contexts.
 
 Contextors are implemented in TypeScript, and enforce type safety on contextor
 creation and usage.
+
+## Installation
+
+[Contexto](https://www.npmjs.com/package/contexto), and thus `contextors`,
+is compatible with
+[React](https://react.dev/) 16.8+,
+[React Native](https://reactnative.dev/) 16.8+
+and [Preact](https://preactjs.com/) 10+.
+You'll need to install one of those yourself.
+If you're using React or React Native, you'll also need to install `scheduler`.
+
+```bash
+yarn add contexto react scheduler @tommostools/contextors
+```
 
 ## <a name="documentation"></a>Documentation
 

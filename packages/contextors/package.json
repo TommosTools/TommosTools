@@ -1,5 +1,5 @@
 {
-  "name": "contextors",
+  "name": "@tommostools/contextors",
   "version": "0.2.1",
   "description": "A library for creating memoised \"context selector\" functions",
   "keywords": [
@@ -41,5 +41,6 @@
   },
   "jest": {
     "testEnvironment": "jsdom"
-  }
+  },
+  "gitHead": "244d3d5b11c34e4078aeac552d325bcf1e9d9759"
 }

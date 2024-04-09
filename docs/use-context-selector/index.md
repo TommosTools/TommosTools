@@ -115,7 +115,7 @@ If you're using React or React Native, you'll also need to install `scheduler`.
 
 
 ```bash
-yarn add contexto react scheduler
+yarn add contexto react scheduler @tommostools/use-context-selector
 ```
 
 Contexto comes with its own TypeScript definitions.

@@ -41,5 +41,6 @@
   },
   "jest": {
     "testEnvironment": "jsdom"
-  }
+  },
+  "gitHead": "244d3d5b11c34e4078aeac552d325bcf1e9d9759"
 }
