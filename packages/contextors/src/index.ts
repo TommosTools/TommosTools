@@ -14,14 +14,14 @@ import {
 } from "react";
 import { MemoSlotProvider } from "./memoslots";
 import {
-	ArgFreeCombiner,
-	ArglessContextorSource,
+	TagFreeCombiner,
+	TaglessContextorSource,
 	Combiner,
-	CompatibleArgFor,
+	CompatibleTagFor,
 	Contextor,
 	ContextorSource,
 	ContextorOptions,
-	MandatoryArgBase,
+	MandatoryTagBase,
 	OutputsFor,
 	Simplify,
 	Tuple,
@@ -29,10 +29,10 @@ import {
 import { isContextor, RawContextor } from "./rawcontextor";
 
 //
-// Match combiners that produce a contextor with an OPTIONAL argument.
-// Contextors with an optional argument can't use an source with a mandatory argument;
-// if all the sources accept an optional argument then the resulting contextor will be
-// able to accept an undefined argument, or any other type compatible with the argument
+// Match combiners that produce a contextor with an OPTIONAL tag argument.
+// Contextors with an optional tag can't use an source with a mandatory tag;
+// if all the sources accept an optional tag then the resulting contextor will be
+// able to accept an undefined tag, or any other type compatible with the argument
 // to all the sources.
 // 
 // This first declaration also provides the default return type when none of the declarations match.
@@ -41,67 +41,67 @@ import { isContextor, RawContextor } from "./rawcontextor";
 //
 
 export function createContextor<
-	Sources extends Tuple<ArglessContextorSource>,
-	Arg extends MandatoryArgBase<Sources, Arg>,
+	Sources extends Tuple<TaglessContextorSource>,
+	Tag extends MandatoryTagBase<Sources, Tag>,
 	Out=never
 >(
 	sources:	Sources,
-	combiner:	Combiner<Sources, Arg | undefined, Out>,
-	options?:	ContextorOptions<Sources, Arg>
+	combiner:	Combiner<Sources, Tag | undefined, Out>,
+	options?:	ContextorOptions<Sources, Tag>
 ): (
 	[Out] extends [never]
 		?	Contextor<never, never>
-		:	Contextor<Simplify<Arg & CompatibleArgFor<Sources>>, Out, true>
+		:	Contextor<Simplify<Tag & CompatibleTagFor<Sources>>, Out, true>
 );
 
 //
-// Special case of the above: produce a contextor with an OPTIONAL argument,
-// when provided a combiner which takes NO argument.
+// Special case of the above: produce a contextor with an OPTIONAL tag argument,
+// when provided a combiner which takes NO tag.
 //
 export function createContextor<
-	Sources extends Tuple<ArglessContextorSource>,
+	Sources extends Tuple<TaglessContextorSource>,
 	Out
 >(
 	sources:	Sources,
-	combiner:	ArgFreeCombiner<Sources, Out>,
+	combiner:	TagFreeCombiner<Sources, Out>,
 	options?:	ContextorOptions<Sources, unknown>
 ): Contextor<unknown, Out, true>;
 
 //
-// General case: produce a contextor that requires an argument.
-// This argument must be compatible with the combiner argument and all the sources,
+// General case: produce a contextor that requires a tag argument.
+// This tag must be compatible with the tag expected by the combiner and all the sources,
 // e.g. combiner taking `{ foo: number }` and source taking `{ bar: string }` produces a
 // contextor taking `{ foo: number, bar: string }`.
 //
 export function createContextor<
 	Sources extends Tuple<ContextorSource<any, unknown>>,
-	Arg extends MandatoryArgBase<Sources, Arg>,
+	Tag extends MandatoryTagBase<Sources, Tag>,
 	Out
 >(
-	sources:	[CompatibleArgFor<Sources>] extends [never] ? never : Sources,
-	combiner:	Combiner<Sources, Arg, Out>,
-	options?:	ContextorOptions<Sources, Arg>
-): Contextor<Simplify<Arg & CompatibleArgFor<Sources>>, Out, false>;
+	sources:	[CompatibleTagFor<Sources>] extends [never] ? never : Sources,
+	combiner:	Combiner<Sources, Tag, Out>,
+	options?:	ContextorOptions<Sources, Tag>
+): Contextor<Simplify<Tag & CompatibleTagFor<Sources>>, Out, false>;
 
 //
-// Catch-all: if arguments for the combiner and any sources are incompatible then
+// Catch-all: if tags for the combiner and any sources are incompatible then
 // we fall through to this declaration, which provides a more helpful type error.
 // 
 export function createContextor<
 	Sources extends Tuple<ContextorSource<any, unknown>>,
-	Arg extends CompatibleArgFor<Sources>,
+	Tag extends CompatibleTagFor<Sources>,
 	Out
 >(
-	sources:	[CompatibleArgFor<Sources>] extends [never] ? never : Sources,
-	combiner:	Combiner<Sources, Arg, Out>,
-	options?:	ContextorOptions<Sources, Arg>
-): Contextor<Simplify<Arg & CompatibleArgFor<Sources>>, Out, false>;
+	sources:	[CompatibleTagFor<Sources>] extends [never] ? never : Sources,
+	combiner:	Combiner<Sources, Tag, Out>,
+	options?:	ContextorOptions<Sources, Tag>
+): Contextor<Simplify<Tag & CompatibleTagFor<Sources>>, Out, false>;
 
-export function createContextor<Sources extends Tuple<ContextorSource<Arg, any>>, Arg, Out>(
+export function createContextor<Sources extends Tuple<ContextorSource<Tag, any>>, Tag, Out>(
 	...params: [
 		...sources:	(Sources | [Sources]),
-		combiner:	Combiner<OutputsFor<Sources>, Arg, Out>,
-		options?:	ContextorOptions<Sources, Arg>
+		combiner:	Combiner<OutputsFor<Sources>, Tag, Out>,
+		options?:	ContextorOptions<Sources, Tag>
 	]
 )
 {
@@ -152,7 +152,7 @@ function isReactContext(value: unknown): value is React.Context<unknown>
 	);
 }
 
-function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>): State<T, Arg>
+function contextorReducer<T, Tag>(state: State<T, Tag>, action: Action<T, Tag>): State<T, Tag>
 {
 	const { value, unsubscribe, subscribe } = state;
 
@@ -164,7 +164,7 @@ function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>):
 			unsubscribe?.();
 			return { value, subscribe };
 		case "setContextor":
-			return { ...subscribe(action.contextor, action.arg), subscribe };
+			return { ...subscribe(action.contextor, action.tag), subscribe };
 		default:
 			return state;
 	}
@@ -176,14 +176,14 @@ function contextorReducer<T, Arg>(state: State<T, Arg>, action: Action<T, Arg>):
 // @param contextor
 // A Contextor previously created with `createContextor`
 //
-// @param arg
+// @param tag
 // An argument to apply to the contextor, as allowed/required.
 //
 // @returns - The latest value of the contextor within the calling component.
 //
-export function useContextor<Arg, Out>(contextor: Contextor<Arg, Out, true>, arg?: Arg): Out;
-export function useContextor<Arg, Out>(contextor: Contextor<Arg, Out, false>, arg: Arg): Out;
-export function useContextor<Arg, Out>(contextor: Contextor<Arg, Out>, arg?: Arg): Out
+export function useContextor<Tag, Out>(contextor: Contextor<Tag, Out, true>, tag?: Tag): Out;
+export function useContextor<Tag, Out>(contextor: Contextor<Tag, Out, false>, tag: Tag): Out;
+export function useContextor<Tag, Out>(contextor: Contextor<Tag, Out>, tag?: Tag): Out
 {
 	const subscriber		= useSubscriber();
 	const [memoProvider]	= useState(() => new MemoSlotProvider());
@@ -195,13 +195,13 @@ export function useContextor<Arg, Out>(contextor: Contextor<Arg, Out>, arg?: Arg
 	// is ever used (in the reducer initialisation).
 	//
 	const subscribe = (
-		(newContextor: Contextor<Arg, Out>): State<Arg, Out> =>
+		(newContextor: Contextor<Tag, Out>): State<Tag, Out> =>
 		{
 			const [initialValue, unsubscribe] = (
 				newContextor.subscribe(
 					subscriber,
 					(updatedValue: Out) => dispatch({ type: "setValue", value: updatedValue }),
-					(arg as Arg),	// nb: arg may be undefined here but only if Arg extends undefined
+					(tag as Tag),	// nb: tag may be undefined here but only if Tag extends undefined
 					{ memoProvider }
 				)
 			);
@@ -211,7 +211,7 @@ export function useContextor<Arg, Out>(contextor: Contextor<Arg, Out>, arg?: Arg
 	);
 
 	const [{ value: currentValue }, dispatch] = useReducer(
-		contextorReducer as Reducer<State<Arg, Out>, Action<Arg, Out>>,
+		contextorReducer as Reducer<State<Tag, Out>, Action<Tag, Out>>,
 		contextor,
 		subscribe
 	);
@@ -219,23 +219,23 @@ export function useContextor<Arg, Out>(contextor: Contextor<Arg, Out>, arg?: Arg
 	useEffectOnUpdate(
 		() =>
 		{
-			dispatch({ type: "setContextor", contextor, arg: (arg as Arg) });
+			dispatch({ type: "setContextor", contextor, tag: (tag as Tag) });
 			return () => dispatch({ type: "unsetContextor" });
 		},
-		[dispatch, contextor, arg]
+		[dispatch, contextor, tag]
 	);
 
 	return currentValue;
 }
 
-type State<Arg, Out> = {
+type State<Tag, Out> = {
 	value:			Out;
 	unsubscribe?:	Unsubscriber;
-	subscribe:		(contextor: Contextor<Arg, Out>, arg: Arg) => State<Arg, Out>
+	subscribe:		(contextor: Contextor<Tag, Out>, tag: Tag) => State<Tag, Out>
 };
-type Action<Arg, Out> = (
+type Action<Tag, Out> = (
 	| { type: "setValue", value: Out }
-	| { type: "setContextor", contextor: Contextor<Arg, Out>, arg: Arg }
+	| { type: "setContextor", contextor: Contextor<Tag, Out>, tag: Tag }
 	| { type: "unsetContextor" }
 );
 

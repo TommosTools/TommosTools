@@ -10,10 +10,10 @@ from React contexts.
  - **Contextors combine the values of multiple contexts** to compute a single value
  which is updated when any of its source values change.
  - **Contextors are efficient and stable.** A contextor will [always produce the same
- output](https://tommostools.github.io/TommosTools/contextors/caching) given the same source values.
- - **Contextors are composable.** They can be used as [sources to other contextors](https://tommostools.github.io/TommosTools/contextors/combining).
+ output](caching) given the same source values.
+ - **Contextors are composable.** They can be used as [sources to other contextors](combining).
  - **Contextors can be parameterized.** A contextor's combining function can accept an
- extra parameter (called a [tag](https://tommostools.github.io/TommosTools/contextors/tagged)) alongside the context-dependent source values.
+ extra parameter (called a [tag](tagged)) alongside the context-dependent source values.
 
 ---
 
@@ -63,10 +63,10 @@ creation and usage.
 
 ## <a name="documentation"></a>Documentation
 
- * [Computing and combining data with contextors](https://tommostools.github.io/TommosTools/contextors/combining)
- * [Tagged contextors](https://tommostools.github.io/TommosTools/contextors/tagged)
- * [Caching](https://tommostools.github.io/TommosTools/contextors/caching)
- * [Simple example](https://tommostools.github.io/TommosTools/contextors/simple-example)
- * [Formik-like example](https://tommostools.github.io/TommosTools/contextors/formik-example)
- * [Integration with Redux](https://tommostools.github.io/TommosTools/contextors/redux)
- * [Contextors vs selectors](https://tommostools.github.io/TommosTools/contextors/selectors)
+ * [Computing and combining data with contextors](combining)
+ * [Tagged contextors](tagged)
+ * [Caching](caching)
+ * [Simple example](simple-example)
+ * [Formik-like example](formik-example)
+ * [Integration with Redux](redux)
+ * [Contextors vs selectors](selectors)
