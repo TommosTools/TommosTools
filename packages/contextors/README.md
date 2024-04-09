@@ -1,8 +1,8 @@
 contextors
 ==========
 
-[![npm](https://img.shields.io/npm/v/@tommostools/contextors)](https://www.npmjs.com/package/@tommostools/contextors)
-[![size](https://img.shields.io/bundlephobia/minzip/@tommostools/contextors)](https://bundlephobia.com/result?p=@tommostools/contextors)
+[![npm](https://img.shields.io/npm/v/contextors)](https://www.npmjs.com/package/contextors)
+[![size](https://img.shields.io/bundlephobia/minzip/contextors)](https://bundlephobia.com/result?p=contextors)
 
 A library for creating "contextors", which efficiently select and combine values
 from React contexts.
@@ -72,7 +72,7 @@ You'll need to install one of those yourself.
 If you're using React or React Native, you'll also need to install `scheduler`.
 
 ```bash
-yarn add contexto react scheduler @tommostools/contextors
+yarn add contexto react scheduler contextors
 ```
 
 ## <a name="documentation"></a>Documentation
