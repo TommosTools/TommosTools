@@ -15,7 +15,7 @@
     "url": "https://github.com/TommosTools/TommosTools.git"
   },
   "license": "MIT",
-  "private": true,
+  "private": false,
   "scripts": {
     "compile": "tsup src/index.ts",
     "lint": "eslint 'src/**/*.{ts,tsx}'",
