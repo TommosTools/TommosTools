@@ -38,29 +38,29 @@ function expectObject<T extends object>(x: T): T
 	throw new ExpectedObjectError();
 }
 
-test("Create and use contextor with single context source and mandatory argument", () =>
+test("Create and use contextor with single context source and mandatory tag", () =>
 {
 	const Contextor = createContextor(
 		[Context1],
-		(context1, arg: { numericArg: number }) => context1.contextValue + arg.numericArg
+		(context1, tag: { numericVal: number }) => context1.contextValue + tag.numericVal
 	);
 
 	expect(() => renderHook(
-		// @ts-expect-error -- contextor requires an argument, so the bare call is forbidden
+		// @ts-expect-error -- contextor requires a tag, so the bare call is forbidden
 		() => useContextor(Contextor)
 	)).toThrow(TypeError);
 
 	expect(renderHook(
-		() => useContextor(Contextor, { numericArg: 5 })
+		() => useContextor(Contextor, { numericVal: 5 })
 	).result.current).toBe(42 + 5);
 });
 
-test("Create and use contextor with single context source and optional argument", () =>
+test("Create and use contextor with single context source and optional tag", () =>
 {
 	const Contextor = createContextor(
 		[Context1],
-		(context1, arg: { stringArg: string } | undefined) => (
-			String(expectNumber(context1.contextValue)) + expectString(arg?.stringArg ?? "")
+		(context1, tag: { stringVal: string } | undefined) => (
+			String(expectNumber(context1.contextValue)) + expectString(tag?.stringVal ?? "")
 		)
 	);
 
@@ -73,23 +73,23 @@ test("Create and use contextor with single context source and optional argument"
 	).result.current).toBe("42");
 
 	expect(renderHook(
-		() => useContextor(Contextor, { stringArg: "!" })
+		() => useContextor(Contextor, { stringVal: "!" })
 	).result.current).toBe("42!");
 });
 
-test("Create and use contextor with single context source and no argument", () =>
+test("Create and use contextor with single context source and no tag", () =>
 {
-	const ArglessContextor = createContextor(
+	const TaglessContextor = createContextor(
 		[Context1],
 		(context1) => expectNumber(context1.contextValue) * 2
 	);
 
 	expect(renderHook(
-		() => useContextor(ArglessContextor)
+		() => useContextor(TaglessContextor)
 	).result.current).toBe(42 * 2);
 
 	expect(renderHook(
-		() => useContextor(ArglessContextor, undefined)	// equivalent to bare call
+		() => useContextor(TaglessContextor, undefined)	// equivalent to bare call
 	).result.current).toBe(42 * 2);
 });
 
@@ -102,57 +102,57 @@ test("Create contextors with no sources", () =>
 	).result.current).toBe(23);
 
 	// Possibly even weirder, but we'll allow it too
-	const TrivialWithArg = createContextor([], (arg: number) => 23 + arg);
+	const TrivialWithTag = createContextor([], (tag: number) => 23 + tag);
 	expect(renderHook(
-		() => useContextor(TrivialWithArg, 37)
+		() => useContextor(TrivialWithTag, 37)
 	).result.current).toBe(23 + 37);
 });
 
-test("Create contextor from contextor sources with simple/no arguments", () =>
+test("Create contextor from contextor sources with simple/no tags", () =>
 {
-	// Building block: a contextor with a single context source and no arg
+	// Building block: a contextor with a single context source and no tag
 	const BaseSource = createContextor([Context1], (context1) => context1.contextValue);
 
-	// Building block: a contextor with a single contextor source and no arg
+	// Building block: a contextor with a single contextor source and no tag
 	const Source0 = createContextor([BaseSource], (baseSource) => baseSource * 2);
 
-	// Create a contextor that combines a Context and an argless Contextor
-	const ContextCombinedWithArglessContextor = createContextor(
+	// Create a contextor that combines a Context and an tagless Contextor
+	const ContextCombinedWithTaglessContextor = createContextor(
 		[Context1, Source0],
 		(context1, sourceValue0) => expectNumber(context1.contextValue) + expectNumber(sourceValue0)
 	);
 	expect(renderHook(
-		() => useContextor(ContextCombinedWithArglessContextor)
+		() => useContextor(ContextCombinedWithTaglessContextor)
 	).result.current).toBe(42 + 42 * 2);
 
-	// Create a contextor that combines a Context and a Contextor that requires an arg
+	// Create a contextor that combines a Context and a Contextor that requires a tag
 	const Source1 = createContextor(
 		[BaseSource],
 		(baseSourceValue, factor: number) => expectNumber(baseSourceValue) * expectNumber(factor)
 	);
-	const ContextCombinedWithArgContextor = createContextor(
+	const ContextCombinedWithTagContextor = createContextor(
 		[Context1, Source1],
 		(context1, sourceValue1) => expectNumber(context1.contextValue) + expectNumber(sourceValue1)
 	);
 	expect(() => renderHook(
-		// @ts-expect-error -- required arg is being omitted
-		() => useContextor(ContextCombinedWithArgContextor)
+		// @ts-expect-error -- required tag is being omitted
+		() => useContextor(ContextCombinedWithTagContextor)
 	)).toThrow(ExpectedNumberError);
 	expect(renderHook(
-		() => useContextor(ContextCombinedWithArgContextor, 3)
+		() => useContextor(ContextCombinedWithTagContextor, 3)
 	).result.current).toBe(42 + 42 * 3);
 
-	// Create a contextor that combines a Contextor that does not require an arg and a Contextor that requires an arg
-	const ArglessContextorCombinedWithArgContextor = createContextor(
+	// Create a contextor that combines a Contextor that does not require a tag and a Contextor that requires a tag
+	const TaglessContextorCombinedWithTagContextor = createContextor(
 		[Source0, Source1],
 		(sourceValue0, sourceValue1) => expectNumber(sourceValue0) + expectNumber(sourceValue1)
 	);
 	expect(() => renderHook(
-		// @ts-expect-error -- required arg is being omitted
-		() => useContextor(ArglessContextorCombinedWithArgContextor)
+		// @ts-expect-error -- required tag is being omitted
+		() => useContextor(TaglessContextorCombinedWithTagContextor)
 	)).toThrow(ExpectedNumberError);
 	expect(renderHook(
-		() => useContextor(ArglessContextorCombinedWithArgContextor, 3)
+		() => useContextor(TaglessContextorCombinedWithTagContextor, 3)
 	).result.current).toBe(42 * 2 + 42 * 3);
 
 	const Source2 = createContextor(
@@ -160,7 +160,7 @@ test("Create contextor from contextor sources with simple/no arguments", () =>
 		(baseSourceValue, exp: number) => expectNumber(baseSourceValue) ** expectNumber(exp)
 	);
 
-	// Create a contextor that combines contextors with compatible args
+	// Create a contextor that combines contextors with compatible tags
 	const CompatibleCombined = createContextor(
 		[Source1, Source2],
 		(sourceValue1, sourceValue2) => expectNumber(sourceValue1) + expectNumber(sourceValue2)
@@ -169,17 +169,17 @@ test("Create contextor from contextor sources with simple/no arguments", () =>
 		() => useContextor(CompatibleCombined, 2)
 	).result.current).toBe(42 * 2 + 42 * 42);
 
-	// Prevent creation of contextor that combines contextors with incompatible args
-	const CompatibleCombinedWithOwnIncompatibleArg = createContextor(
+	// Prevent creation of contextor that combines contextors with incompatible tags
+	const CompatibleCombinedWithOwnIncompatibleTag = createContextor(
 		[Source1, Source2],
-		// @ts-expect-error -- Source1 and Source2 have arg `number`, which is incompatible with combiner arg `string`
+		// @ts-expect-error -- Source1 and Source2 have tag `number`, which is incompatible with combiner tag `string`
 		(sourceValue1, sourceValue2, salt: string) => (
 			expectString(salt).indexOf("x") + (expectNumber(sourceValue1) - expectNumber(sourceValue2))
 		)
 	);
 	expect(() => renderHook(
-		// @ts-expect-error -- CompatibleCombinedWithOwnIncompatibleArg is not a valid Contextor
-		() => useContextor(CompatibleCombinedWithOwnIncompatibleArg, 2)
+		// @ts-expect-error -- CompatibleCombinedWithOwnIncompatibleTag is not a valid Contextor
+		() => useContextor(CompatibleCombinedWithOwnIncompatibleTag, 2)
 	)).toThrow(ExpectedStringError);
 
 	const Source3 = createContextor(
@@ -190,7 +190,7 @@ test("Create contextor from contextor sources with simple/no arguments", () =>
 	);
 
 	const IncompatibleCombined = createContextor(
-		// @ts-expect-error -- Source1 and Source3 have incompatible arguments
+		// @ts-expect-error -- Source1 and Source3 have incompatible tags
 		[Source1, Source3],
 		(sourceValue1, sourceValue3) => (
 			// @ts-expect-error -- sources have unknown types because of invalid invocation
@@ -208,18 +208,18 @@ test("Create contextor from contextor sources with simple/no arguments", () =>
 	)).toThrow(ExpectedNumberError);
 });
 
-test("Create contextor from contextor sources with structured arguments", () =>
+test("Create contextor from contextor sources with structured tags", () =>
 {
 	const Source1 = createContextor(
 		[Context1],
-		(context1, arg: { numericArg: number }) => (
-			expectNumber(context1.contextValue) + expectNumber(arg.numericArg)
+		(context1, tag: { numericVal: number }) => (
+			expectNumber(context1.contextValue) + expectNumber(tag.numericVal)
 		)
 	);
 	const Source2 = createContextor(
 		[Context1],
-		(context1, arg: { stringArg: string }) => (
-			expectNumber(context1.contextValue) * expectString(arg.stringArg).length
+		(context1, tag: { stringVal: string }) => (
+			expectNumber(context1.contextValue) * expectString(tag.stringVal).length
 		)
 	);
 	const Combined = createContextor(
@@ -231,87 +231,87 @@ test("Create contextor from contextor sources with structured arguments", () =>
 
 	// Doesn't work as a bare contextor
 	expect(() => renderHook(
-		// @ts-expect-error -- contextor requires an argument, so the bare call is forbidden
+		// @ts-expect-error -- contextor requires a tag, so the bare call is forbidden
 		() => useContextor(Combined)
 	)).toThrow(TypeError);
 
-	// Doesn't work if arg is empty
+	// Doesn't work if tag is empty
 	expect(() => renderHook(
-		// @ts-expect-error -- {} does not satisfy { numericArg: number, stringArg: string }
+		// @ts-expect-error -- {} does not satisfy { numericVal: number, stringVal: string }
 		() => useContextor(Combined, {})
 	)).toThrow(ExpectedNumberError);
 
-	// Doesn't work if arg doesn't satisfy all the sources
+	// Doesn't work if tag doesn't satisfy all the sources
 	expect(() => renderHook(
-		// @ts-expect-error -- { numericArg: number } does not satisfy { stringArg: string }
-		() => useContextor(Combined, { numericArg: 3 })
+		// @ts-expect-error -- { numericVal: number } does not satisfy { stringVal: string }
+		() => useContextor(Combined, { numericVal: 3 })
 	)).toThrow(ExpectedStringError);
 
-	// Works if arg satisfies both sources
+	// Works if tag satisfies both sources
 	expect(renderHook(
-		() => useContextor(Combined, { numericArg: 3, stringArg: "abcde" })
+		() => useContextor(Combined, { numericVal: 3, stringVal: "abcde" })
 	).result.current).toBe("45/210");
 
-	// This should work -- { numericArg: number, stringArg: string } should satisfy both
-	const CompatibleArg = createContextor(
+	// This should work -- { numericVal: number, stringVal: string } should satisfy both
+	const CompatibleTag = createContextor(
 		[Source1],
-		(sourceValue1, arg: { stringArg: string }) => (
-			`${expectNumber(sourceValue1)}/${expectString(arg.stringArg)}`
+		(sourceValue1, tag: { stringVal: string }) => (
+			`${expectNumber(sourceValue1)}/${expectString(tag.stringVal)}`
 		)
 	);
 
 	expect(renderHook(
-		() => useContextor(CompatibleArg, { numericArg: 1000, stringArg: "str" })
+		() => useContextor(CompatibleTag, { numericVal: 1000, stringVal: "str" })
 	).result.current).toBe("1042/str");
 
-	// IncompatibleArg
+	// IncompatibleTag
 	createContextor(
 		[Source1],
-		// @ts-expect-error -- { numericArg: number } is incompatible with { numericArg: string }
-		(sourceValue1, arg: { numericArg: string }) => sourceValue1 + arg.numericArg.length
+		// @ts-expect-error -- { numericVal: number } is incompatible with { numericVal: string }
+		(sourceValue1, tag: { numericVal: string }) => sourceValue1 + tag.numericVal.length
 	);
 });
 
-test("Optional arg combinations", () =>
+test("Optional tag combinations", () =>
 {
-	// Create contextor with optional structured arg
+	// Create contextor with optional structured tag
 	const Source1 = createContextor(
 		[Context1],
-		(context1, arg: { stringArg: string } | undefined) => (
-			expectNumber(context1.contextValue) * (arg ? expectString(arg.stringArg).length : 13)
+		(context1, tag: { stringVal: string } | undefined) => (
+			expectNumber(context1.contextValue) * (tag ? expectString(tag.stringVal).length : 13)
 		)
 	);
 
-	// Can omit arg
+	// Can omit tag
 	expect(renderHook(
 		() => useContextor(Source1)
 	).result.current).toBe(42 * 13);
 
-	// Can supply a correctly-formed arg
+	// Can supply a correctly-formed tag
 	expect(renderHook(
-		() => useContextor(Source1, { stringArg: "abc" })
+		() => useContextor(Source1, { stringVal: "abc" })
 	).result.current).toBe(42 * 3);
 
-	// Create contextor with required structured arg
+	// Create contextor with required structured tag
 	const Source2 = createContextor(
 		[Context1],
-		(context1, arg: { numericArg: number }) => (
-			expectNumber(context1.contextValue) + expectNumber(expectObject(arg).numericArg)
+		(context1, tag: { numericVal: number }) => (
+			expectNumber(context1.contextValue) + expectNumber(expectObject(tag).numericVal)
 		)
 	);
 
-	// CANNOT omit arg
+	// CANNOT omit tag
 	expect(() => renderHook(
-		// @ts-expect-error -- { numericArg: number } cannot be omitted
+		// @ts-expect-error -- { numericVal: number } cannot be omitted
 		() => useContextor(Source2)
 	)).toThrow(ExpectedObjectError);
 
-	// Can supply a correctly-formed arg
+	// Can supply a correctly-formed tag
 	expect(renderHook(
-		() => useContextor(Source2, { numericArg: 23 })
+		() => useContextor(Source2, { numericVal: 23 })
 	).result.current).toBe(42 + 23);
 
-	// Can combine contextors, but the arg of the resulting contextor is MANDATORY
+	// Can combine contextors, but the tag of the resulting contextor is MANDATORY
 	const Combined12 = createContextor(
 		[Source1, Source2],
 		(sourceValue1, sourceValue2) => (
@@ -319,35 +319,35 @@ test("Optional arg combinations", () =>
 		)
 	);
 
-	// Cannot omit arg
+	// Cannot omit tag
 	expect(() => renderHook(
-		// @ts-expect-error -- arg cannot be omitted
+		// @ts-expect-error -- tag cannot be omitted
 		() => useContextor(Combined12)
 	)).toThrow(ExpectedObjectError);
 
 	// Cannot supply a partial type
 	expect(() => renderHook(
-		// @ts-expect-error -- arg must supply entire source type
-		() => useContextor(Combined12, { stringArg: "abc" })
+		// @ts-expect-error -- tag must supply entire source type
+		() => useContextor(Combined12, { stringVal: "abc" })
 	)).toThrow(ExpectedNumberError);
 
-	// Arg satisfies both sources
+	// Tag satisfies both sources
 	expect(renderHook(
-		() => useContextor(Combined12, { stringArg: "abc", numericArg: 5 })
+		() => useContextor(Combined12, { stringVal: "abc", numericVal: 5 })
 	).result.current).toBe(`${42 * 3}/${42 + 5}`);
 
-	// Different source with optional and compatible arg
+	// Different source with optional and compatible tag
 	const Source3 = createContextor(
 		[Context1],
-		(context1, arg: { numericArg: number } | undefined) => (
-			expectNumber(context1.contextValue) * (arg ? expectNumber(arg.numericArg) : 23)
+		(context1, tag: { numericVal: number } | undefined) => (
+			expectNumber(context1.contextValue) * (tag ? expectNumber(tag.numericVal) : 23)
 		)
 	);
 
 	const Combined13 = createContextor(
 		[Source1, Source3],
-		(sourceValue1, sourceValue3, arg) => (
-			sourceValue1 + sourceValue3 + (arg ? expectNumber(arg.numericArg) + expectString(arg.stringArg).length : 0)
+		(sourceValue1, sourceValue3, tag) => (
+			sourceValue1 + sourceValue3 + (tag ? expectNumber(tag.numericVal) + expectString(tag.stringVal).length : 0)
 		)
 	);
 
@@ -356,48 +356,48 @@ test("Optional arg combinations", () =>
 	).result.current).toBe(42 * 13 + 42 * 23 + 0);
 
 	expect(() => renderHook(
-		// @ts-expect-error -- missing stringArg
-		() => useContextor(Combined13, { numericArg: 10 })
+		// @ts-expect-error -- missing stringVal
+		() => useContextor(Combined13, { numericVal: 10 })
 	)).toThrow(ExpectedStringError);
 
 	expect(renderHook(
-		() => useContextor(Combined13, { numericArg: 10, stringArg: "abcd" })
+		() => useContextor(Combined13, { numericVal: 10, stringVal: "abcd" })
 	).result.current).toBe(42 * 4 + 42 * 10 + (10 + 4));
 
 	const Combined23 = createContextor(
 		[Source2, Source3],
-		(sourceValue2, sourceValue3, arg) => (
-			sourceValue2 + sourceValue3 + expectObject(arg).numericArg
+		(sourceValue2, sourceValue3, tag) => (
+			sourceValue2 + sourceValue3 + expectObject(tag).numericVal
 		)
 	);
 
 	expect(() => renderHook(
-		// @ts-expect-error -- Contextor2 arg is required, so the combined contextor arg is required
+		// @ts-expect-error -- Contextor2 tag is required, so the combined contextor tag is required
 		() => useContextor(Combined23)
 	)).toThrow(ExpectedObjectError);
 
 	expect(renderHook(
-		() => useContextor(Combined23, { numericArg: 10 })
+		() => useContextor(Combined23, { numericVal: 10 })
 	).result.current).toBe(42 + 10 + 42 * 10 + 10);
 });
 
-test("Combining simple arg and structured arg should fail", () =>
+test("Combining simple tag and structured tag should fail", () =>
 {
 	const Source1 = createContextor(
 		[Context1],
-		(context1, arg: number) => (
-			expectNumber(context1.contextValue) + expectNumber(arg)
+		(context1, tag: number) => (
+			expectNumber(context1.contextValue) + expectNumber(tag)
 		)
 	);
 	const Source2 = createContextor(
 		[Context1],
-		(context1, arg: { numericArg: number }) => (
-			expectNumber(context1.contextValue) + expectObject(arg).numericArg
+		(context1, tag: { numericVal: number }) => (
+			expectNumber(context1.contextValue) + expectObject(tag).numericVal
 		)
 	);
 
 	const Combined = createContextor(
-		// @ts-expect-error -- (number & { numericArg: number }) cannot be fulfilled
+		// @ts-expect-error -- (number & { numericVal: number }) cannot be fulfilled
 		[Source1, Source2],
 		(sourceValue1, sourceValue2) => (
 			// @ts-expect-error -- sources have unknown types because of invalid invocation
@@ -406,82 +406,82 @@ test("Combining simple arg and structured arg should fail", () =>
 	);
 
 	expect(() => renderHook(
-		// @ts-expect-error -- 42 doesn't satisfy { numericArg: number }
+		// @ts-expect-error -- 42 doesn't satisfy { numericVal: number }
 		() => useContextor(Combined, 42)
 	)).toThrow(ExpectedObjectError);
 
-	const IncompatibleArg1 = createContextor(
+	const IncompatibleTag1 = createContextor(
 		[Source1],
-		// @ts-expect-error -- { numericArg: number } is not compatible with existing arg number
-		(sourceValue1, arg: { numericArg: number }) => (
-			expectNumber(sourceValue1) + expectObject(arg).numericArg
+		// @ts-expect-error -- { numericVal: number } is not compatible with existing tag number
+		(sourceValue1, tag: { numericVal: number }) => (
+			expectNumber(sourceValue1) + expectObject(tag).numericVal
 		)
 	);
 
 	expect(() => renderHook(
-		// @ts-expect-error -- 42 doesn't satisfy { numericArg: number }
-		() => useContextor(IncompatibleArg1, 42)
+		// @ts-expect-error -- 42 doesn't satisfy { numericVal: number }
+		() => useContextor(IncompatibleTag1, 42)
 	)).toThrow(ExpectedObjectError);
 
-	const IncompatibleArg2 = createContextor(
+	const IncompatibleTag2 = createContextor(
 		[Source2],
-		// @ts-expect-error -- number is not compatible with { numericArg: number }
-		(sourceValue2, arg: number) => (
+		// @ts-expect-error -- number is not compatible with { numericVal: number }
+		(sourceValue2, tag: number) => (
 			// @ts-expect-error -- improper contextor infers wrong type for sourceValue2
-			expectObject(sourceValue2).numericArg + expectNumber(arg)
+			expectObject(sourceValue2).numericVal + expectNumber(tag)
 		)
 	);
 
 	expect(() => renderHook(
 		// @ts-expect-error -- 42 doesn't satisfy number
-		() => useContextor(IncompatibleArg2, { numericArg: 42 })
+		() => useContextor(IncompatibleTag2, { numericVal: 42 })
 	)).toThrow(ExpectedObjectError);
 });
 
-test("Nested args", () =>
+test("Nested tags", () =>
 {
 	const Source1 = createContextor(
 		[Context1],
-		(context1, arg: { nested: { stringArg: string, extra: { deep: number } | number } }) => (
-			`(${expectNumber(context1.contextValue)}, ${expectString(arg.nested.stringArg)})`
+		(context1, tag: { nested: { stringVal: string, extra: { deep: number } | number } }) => (
+			`(${expectNumber(context1.contextValue)}, ${expectString(tag.nested.stringVal)})`
 		)
 	);
 
 	expect(renderHook(
-		() => useContextor(Source1, { nested: { stringArg: "hello", extra: 7 } })
+		() => useContextor(Source1, { nested: { stringVal: "hello", extra: 7 } })
 	).result.current).toBe("(42, hello)");
 
 	const Extended = createContextor(
 		[Source1],
-		(sourceValue1, arg: { nested: { numericArg: number, extra: { deep: number } | number } }) =>
+		(sourceValue1, tag: { nested: { numericVal: number, extra: { deep: number } | number } }) =>
 		{
-			const { extra } = arg.nested;
+			const { extra } = tag.nested;
 			const num = expectNumber(extra instanceof Object ? extra.deep : extra);
 
-			return `(${expectString(sourceValue1)}, ${expectNumber(arg.nested.numericArg)}, ${num})`;
+			return `(${expectString(sourceValue1)}, ${expectNumber(tag.nested.numericVal)}, ${num})`;
 		}
 	);
 
 	expect(renderHook(
-		() => useContextor(Extended, { nested: { stringArg: "howdy", numericArg: 9, extra: 7 } })
+		() => useContextor(Extended, { nested: { stringVal: "howdy", numericVal: 9, extra: 7 } })
 	).result.current).toBe("((42, howdy), 9, 7)");
 
 	const Source2 = createContextor(
 		[Context1],
-		(context1, arg: { nested: { numericArg: number } }) => (
-			`(${context1.contextValue}, ${expectNumber(arg.nested.numericArg)})`
+		(context1, tag: { nested: { numericVal: number } }) => (
+			`(${context1.contextValue}, ${expectNumber(tag.nested.numericVal)})`
 		)
 	);
 
 	expect(renderHook(
-		() => useContextor(Source2, { nested: { numericArg: 99 } })
+		() => useContextor(Source2, { nested: { numericVal: 99 } })
 	).result.current).toBe("(42, 99)");
 
 	const Combined = createContextor(
 		[Source1, Source2],
-		(sourceValue1, sourceValue2, arg) =>
+		(sourceValue1, sourceValue2, tag) =>
 		{
-			const { extra } = arg.nested;
+			const { extra } = tag.nested;
 			const num = expectNumber(extra instanceof Object ? extra.deep : extra);
 
 			return `(${expectString(sourceValue1)}, ${expectString(sourceValue2)}, ${num})`;
@@ -489,7 +489,7 @@ test("Nested args", () =>
 	);
 
 	expect(renderHook(
-		() => useContextor(Combined, { nested: { stringArg: "ahoy", numericArg: 123, extra: { deep: 37 } } })
+		() => useContextor(Combined, { nested: { stringVal: "ahoy", numericVal: 123, extra: { deep: 37 } } })
 	).result.current).toBe("((42, ahoy), (42, 123), 37)");
 });
 
@@ -501,15 +501,15 @@ test("Can't supply a raw context to useContextor", () =>
 	)).toThrow(TypeError);
 });
 
-test("test indexable arg merging with keyed arg", () =>
+test("test indexable tag merging with keyed tag", () =>
 {
 	const Source1 = createContextor(
 		[Context1],
-		(context1, arg: { [k: string]: number }) => `(${context1.contextValue}, ${JSON.stringify(arg)})`
+		(context1, tag: { [k: string]: number }) => `(${context1.contextValue}, ${JSON.stringify(tag)})`
 	);
 	const Source2 = createContextor(
 		[Context1],
-		(context1, arg: { foo: number }) => `(${context1.contextValue}, ${expectNumber(arg.foo)})`
+		(context1, tag: { foo: number }) => `(${context1.contextValue}, ${expectNumber(tag.foo)})`
 	);
 
 	const CombinedContextor = createContextor(
@@ -518,7 +518,7 @@ test("test indexable arg merging with keyed arg", () =>
 	);
 
 	expect(() => renderHook(
-		// @ts-expect-error -- arg is required
+		// @ts-expect-error -- tag is required
 		() => useContextor(CombinedContextor)
 	)).toThrow(TypeError);
 

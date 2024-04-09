@@ -2,7 +2,7 @@
 
 ## Tommo's TypeScript Tools
 
- - [Contexto](https://github.com/TommosTools/TommosTools/tree/main/packages/contexto)
+ - [Contexto](https://github.com/TommosTools/TommosTools/tree/main/packages/contexto) [[documentation]](contexto/)
  
 Enhanced React contexts in userland
 

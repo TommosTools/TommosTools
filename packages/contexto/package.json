@@ -1,6 +1,6 @@
 {
   "name": "contexto",
-  "version": "0.1.7",
+  "version": "0.2.0",
   "description": "Enhanced React contexts in userland",
   "keywords": [
     "react",
@@ -42,6 +42,9 @@
       "optional": true
     },
     "react-native": {
+      "optional": true
+    },
+    "scheduler": {
       "optional": true
     }
   },

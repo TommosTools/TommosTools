@@ -1,6 +1,6 @@
 {
   "name": "@tommostools/use-context-selector",
-  "version": "0.1.7",
+  "version": "0.2.0",
   "description": "Hook for simple context slicing in React",
   "keywords": [
     "react",
@@ -36,11 +36,8 @@
     }
   },
   "dependencies": {
-    "@types/react": "^18.0.27",
-    "contexto": "^0.1.7"
-  },
-  "devDependencies": {
-    "@types/react": "^18.0.27"
+    "@types/react": ">=16.8.0",
+    "contexto": "^0.2.0"
   },
   "jest": {
     "testEnvironment": "jsdom"

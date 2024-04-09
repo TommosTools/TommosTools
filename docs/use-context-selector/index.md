@@ -16,8 +16,7 @@ which allows for React components to ignore irrelevant changes in context
 values, reducing unnecessary re-renders.
 
 The stock React Context implementation causes any change in value to re-render
-all components that use that context.
-The [Contexto library](https://www.npmjs.com/package/contexto)
+all components that use that context.  The [Contexto library](../contexto)
 provides an alternative implementation which uses a pub-sub design to allow
 components to selectively subscribe only to relevant value updates.
 
@@ -33,8 +32,8 @@ useContextSelector(ContextoContext, (contextValue) => someFunction(contextValue)
 ```
 
 For more elaborate context data manipulations, and an integrated caching system,
-you may wish to look at into [`contextors`](https://www.npmjs.com/package/contextors),
-which also build on the Contexto library.
+you may wish to look at into [`contextors`](../contextors), which also build on
+the Contexto library.
 
 ## Usage
 
@@ -78,9 +77,8 @@ argument containing a list of values that the function's stability depends on,
 in the style of `useMemo` or `useCallback`.  The selector function will be
 updated and re-evaluated when any of the dependencies changes.
 
-The dependency list default to the empty list if omitted, so the values of any
-local variables referenced in the selector will remain unchanged after the
-component is mounted:
+The dependency list default to the empty list if omitted, so the values of any local variables
+referenced in the selector will remain unchanged after the component is mounted:
 
 ```jsx
 const Consumer = () =>
@@ -107,7 +105,7 @@ const Consumer = () =>
 
 ## <a name="installation"></a>Installation
 
-[Contexto](https://www.npmjs.com/package/contexto), and thus `use-context-selector`,
+[Contexto](../contexto), and thus `use-context-selector`,
 is compatible with
 [React](https://react.dev/) 16.8+,
 [React Native](https://reactnative.dev/) 16.8+
@@ -115,8 +113,9 @@ and [Preact](https://preactjs.com/) 10+.
 You'll need to install one of those yourself.
 If you're using React or React Native, you'll also need to install `scheduler`.
 
+
 ```bash
 yarn add contexto react scheduler
 ```
 
-`useContextSelector` comes with its own TypeScript definitions.
+Contexto comes with its own TypeScript definitions.

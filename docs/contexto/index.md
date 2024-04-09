@@ -1,4 +1,4 @@
-contexto
+[contexto](.)
 ========
 
 [![npm](https://img.shields.io/npm/v/contexto)](https://www.npmjs.com/package/contexto)
@@ -8,7 +8,7 @@ Enhanced React contexts in userland
 
 ---
 
-## The Problem
+## <a name="problem"></a>The Problem
 
 React's `Context` and `useContext` are a convenient way to share values
 within a dynamic scope, and can avoid messy prop-drilling.
@@ -19,26 +19,26 @@ provided to a large component tree.
 
 ---
 
-## The Offering
+## <a name="offering"></a>The Offering
 
 `Contexto` provides a drop-in replacement for the standard `Context` implementation
 based on a user-space subscription model, with a few extensions:
 
- - **[Custom equality functions](https://tommostools.github.io/TommosTools/contexto/selective-subscriptions)** to allow consumers to ignore irrelevant updates
+ - **[Custom equality functions](selective-subscriptions)** to allow consumers to ignore irrelevant updates
 
- - **[`useContexts()`](https://tommostools.github.io/TommosTools/contexto/api#useContexts) hook** to subscribe to multiple contexts
+ - **[`useContexts()`](api#useContexts) hook** to subscribe to multiple contexts
 
- - **[Imperative value modification](https://tommostools.github.io/TommosTools/contexto/imperative-updates)** using methods exposed by hook and `Provider` ref handles,
+ - **[Imperative value modification](imperative-updates)** using methods exposed by hook and `Provider` ref handles,
  allowing extremely efficient updates with minimal re-rendering
 
-[`Contexto` can also wrap standard `React.Context` instances](https://tommostools.github.io/TommosTools/contexto/interoperability), so you can use the
+[`Contexto` can also wrap standard `React.Context` instances](interoperability), so you can use the
 new hotness to consume contexts from existing code and external libraries.
 
 ---
 
-## Usage
+## <a name="usage"></a>Usage
 
-```javascript
+```jsx
 import { createContext, useContexts, useContextUpdate } from "contexto";
 
 const MyContext         = createContext("defaultValue");
@@ -71,7 +71,7 @@ function App() {
 }
 ```
 
-## Installation
+## <a name="installation"></a>Installation
 
 Contexto is compatible with
 [React](https://react.dev/) 16.8+,
@@ -88,17 +88,17 @@ Contexto comes with its own TypeScript definitions.
 
 ---
 
-## Documentation
+## <a name="documentation"></a>Documentation
 
- * [API listing](https://tommostools.github.io/TommosTools/contexto/api)
- * [Selective subscriptions](https://tommostools.github.io/TommosTools/contexto/selective-subscriptions)
- * [Imperative updates](https://tommostools.github.io/TommosTools/contexto/imperative-updates)
- * [Caveats](https://tommostools.github.io/TommosTools/contexto/caveats)
- * [Interoperability](https://tommostools.github.io/TommosTools/contexto/interoperability)
- * [Working Example](https://tommostools.github.io/TommosTools/contexto/example)
+ * [API listing](api)
+ * [Selective subscriptions](selective-subscriptions)
+ * [Imperative updates](imperative-updates)
+ * [Caveats](caveats)
+ * [Interoperability](interoperability)
+ * [Working Example](example)
 
 ---
 
-## Inspiration
+## <a name="inspiration"></a>Inspiration
 
 See the wonderful work of [Dai Shi](https://github.com/dai-shi/), specifically [`useContextSelector`](https://github.com/dai-shi/use-context-selector/).
