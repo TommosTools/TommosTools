@@ -147,7 +147,7 @@ function isReactContext(value: unknown): value is React.Context<unknown>
 	return (
 		value !== null
 		&& typeof value === "object"
-		&& "$$typeof" in value
+		&& "$$typeof" in value!
 		&& (value as any).$$typeof === Symbol.for("react.context")
 	);
 }

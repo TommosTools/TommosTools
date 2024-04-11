@@ -49,7 +49,7 @@ export class RawContextor<Sources extends Tuple<ContextorSource<Tag, unknown>>, 
 		const unsubscribeAll = () => unsubscribers.forEach((unsubscribe) => unsubscribe());
 
 		const sourceValues = (
-			sources.map(
+			(sources as ContextorSource<Tag, unknown>[]).map(
 				<InnerOut>(source: ContextorSource<Tag, InnerOut>, i: number) =>
 				{
 					const updateValue = (
