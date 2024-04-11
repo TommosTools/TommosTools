@@ -112,11 +112,16 @@ is compatible with
 [React](https://react.dev/) 16.8+,
 [React Native](https://reactnative.dev/) 16.8+
 and [Preact](https://preactjs.com/) 10+.
-You'll need to install one of those yourself.
-If you're using React or React Native, you'll also need to install `scheduler`.
+
+Once you've [installed Contexto](https://github.com/TommosTools/TommosTools/tree/main/packages/contexto#installation),
+you can just:
 
 ```bash
-yarn add contexto react scheduler @tommostools/use-context-selector
+npm install use-context-selector
+```
+or
+```bash
+yarn add use-context-selector
 ```
 
-`useContextSelector` comes with its own TypeScript definitions.
+`use-context-selector` comes with its own TypeScript definitions.

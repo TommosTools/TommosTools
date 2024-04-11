@@ -76,12 +76,28 @@ function App() {
 Contexto is compatible with
 [React](https://react.dev/) 16.8+,
 [React Native](https://reactnative.dev/) 16.8+
-and [Preact](https://preactjs.com/) 10+.
+and [Preact](https://preactjs.com/) 10+ with React aliasing.
 You'll need to install one of those yourself.
 If you're using React or React Native, you'll also need to install `scheduler`.
 
+### Inside existing React or React Native app
+
 ```bash
-yarn add contexto react scheduler
+npm install contexto scheduler
+```
+or
+```bash
+yarn add contexto scheduler
+```
+
+### Inside existing Preact app
+
+```bash
+npm install contexto
+```
+or
+```bash
+yarn add contexto
 ```
 
 Contexto comes with its own TypeScript definitions.

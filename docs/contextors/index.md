@@ -15,6 +15,9 @@ from React contexts.
  - **Contextors can be parameterized.** A contextor's combining function can accept an
  extra parameter (called a [tag](tagged)) alongside the context-dependent source values.
 
+`contextors` makes use of the [Contexto library](../contexto) to provide fast, targeted
+state updates to only the components that need to be notified.
+
 ---
 
 ## <a name="basic-usage"></a>Basic Usage
@@ -68,11 +71,16 @@ is compatible with
 [React](https://react.dev/) 16.8+,
 [React Native](https://reactnative.dev/) 16.8+
 and [Preact](https://preactjs.com/) 10+.
-You'll need to install one of those yourself.
-If you're using React or React Native, you'll also need to install `scheduler`.
+
+Once you've [installed Contexto](https://github.com/TommosTools/TommosTools/tree/main/packages/contexto#installation),
+you can just:
 
 ```bash
-yarn add contexto react scheduler contextors
+npm install contextors
+```
+or
+```bash
+yarn add contextors
 ```
 
 ## <a name="documentation"></a>Documentation
