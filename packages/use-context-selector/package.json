@@ -17,7 +17,7 @@
   "license": "MIT",
   "private": false,
   "scripts": {
-    "compile": "tsup src/index.ts",
+    "compile": "tsup src/index.ts --dts",
     "lint": "eslint 'src/**/*.ts*'",
     "test": "jest"
   },

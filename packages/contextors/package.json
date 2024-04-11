@@ -17,6 +17,7 @@
   "license": "MIT",
   "private": false,
   "scripts": {
+    "precompile": "cp src/types.ts dist/index.d.ts",
     "compile": "tsup src/index.ts",
     "lint": "eslint 'src/**/*.{ts,tsx}'",
     "test": "jest",
