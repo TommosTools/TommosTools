@@ -1,6 +1,6 @@
 {
   "name": "contexto",
-  "version": "0.2.1",
+  "version": "0.2.4",
   "description": "Enhanced React contexts in userland",
   "keywords": [
     "react",
