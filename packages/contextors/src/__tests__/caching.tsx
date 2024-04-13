@@ -33,10 +33,10 @@ test("simple caching", async () =>
 	let computeCount = 0;
 	const contextor = createContextor(
 		[Context1, Context2, Context3, Context4],
-		() =>
+		(...values) =>
 		{
 			computeCount += 1;
-			return "";
+			return values.join(",");
 		}
 	);
 
@@ -79,43 +79,43 @@ test("simple caching", async () =>
 	expect(computeCount).toBe(1);
 
 	act(() => update3(obj3));		// [obj1, obj2, obj3, obj4]
-	expect(renderCount).toBe(2);
+	expect(renderCount).toBe(1);
 	expect(computeCount).toBe(1);	// cache HIT
 
 	act(() => update4("foo"));		// [obj1, obj2, obj3, "foo"]
-	expect(renderCount).toBe(3);
+	expect(renderCount).toBe(2);
 	expect(computeCount).toBe(2);	// cache miss
 
 	act(() => update4("bar"));		// [obj1, obj2, obj3, "bar"]
-	expect(renderCount).toBe(4);
+	expect(renderCount).toBe(3);
 	expect(computeCount).toBe(3);	// cache miss
 
 	act(() => update4("bar"));		// [obj1, obj2, obj3, "bar"]
-	expect(renderCount).toBe(5);
+	expect(renderCount).toBe(3);
 	expect(computeCount).toBe(3);	// cache HIT
 
 	act(() => update4("foo"));		// [obj1, obj2, obj3, "foo"]
-	expect(renderCount).toBe(6);
+	expect(renderCount).toBe(4);
 	expect(computeCount).toBe(4);	// cache miss
 
 	act(() => update4("bar"));		// [obj1, obj2, obj3, "bar"]
-	expect(renderCount).toBe(7);
+	expect(renderCount).toBe(5);
 	expect(computeCount).toBe(5);	// cache miss
 
 	act(() => update4(obj4));		// [obj1, obj2, obj3, obj4]
-	expect(renderCount).toBe(8);
+	expect(renderCount).toBe(6);
 	expect(computeCount).toBe(5);	// cache HIT
 
 	act(() => update3("foo"));		// [obj1, obj2, "foo", obj4]
-	expect(renderCount).toBe(9);
+	expect(renderCount).toBe(7);
 	expect(computeCount).toBe(6);	// cache miss
 
 	act(() => update4("bar"));		// [obj1, obj2, "foo", "bar"]
-	expect(renderCount).toBe(10);
+	expect(renderCount).toBe(8);
 	expect(computeCount).toBe(7);	// cache miss
 
 	act(() => update3("foo"));		// [obj1, obj2, "foo", "bar"]
-	expect(renderCount).toBe(11);
+	expect(renderCount).toBe(8);
 	expect(computeCount).toBe(7);	// cache HIT
 });
 

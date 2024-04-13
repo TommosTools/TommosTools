@@ -159,7 +159,12 @@ function contextorReducer<T, Tag>(state: State<T, Tag>, action: Action<T, Tag>):
 	switch (action.type)
 	{
 		case "setValue":
-			return { value: action.value, unsubscribe, subscribe };
+			return (
+				// Only update state if value has changed
+				(action.value !== value)
+					?	{ value: action.value, unsubscribe, subscribe }
+					:	state
+			);
 		case "unsetContextor":
 			unsubscribe?.();
 			return { value, subscribe };
