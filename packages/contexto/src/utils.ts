@@ -2,17 +2,31 @@ import {
 	useEffect,
 	useLayoutEffect,
 } from "react";
-import {
-	unstable_NormalPriority as NormalPriority,
-	unstable_runWithPriority as runWithPriority,
-} from "scheduler";
 import { IS_SSR } from "./env";
 
-export const useIsomorphicLayoutEffect = IS_SSR ? useEffect : useLayoutEffect;
+//
+// Use scheduler library if available.
+// Not available in Preact, not available in React/RN unless explicitly installed.
+//
 
-export const runWithNormalPriority = runWithPriority
-	?	(block: () => void) => runWithPriority(NormalPriority, block)
-	:	(block: () => void) => block();		// For preact-compatibility, which doesn't have runWithPriority
+let runWithNormalPriorityImpl = (block: () => void) => block();
+
+import("scheduler")
+	.then((scheduler) =>
+		{
+			runWithNormalPriorityImpl = (
+				(block: () => void) =>
+					scheduler.unstable_runWithPriority(scheduler.unstable_NormalPriority, block)
+			);
+		})
+	.catch(() =>
+		{
+			/* ignore */
+		});
+
+export const runWithNormalPriority = (block: () => void) => runWithNormalPriorityImpl(block);
+
+export const useIsomorphicLayoutEffect = IS_SSR ? useEffect : useLayoutEffect;
 
 export function pick<T extends object, K extends keyof T>(value: T, keys: K[]): Pick<T, K>
 {
