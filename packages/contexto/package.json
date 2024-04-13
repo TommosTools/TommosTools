@@ -28,23 +28,18 @@
   },
   "devDependencies": {
     "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "scheduler": "^0.23.0"
+    "react-dom": "^18.2.0"
   },
   "peerDependencies": {
     "react": ">=16.8.0",
     "react-dom": "*",
-    "react-native": "*",
-    "scheduler": "^0.23.0"
+    "react-native": "*"
   },
   "peerDependenciesMeta": {
     "react-dom": {
       "optional": true
     },
     "react-native": {
-      "optional": true
-    },
-    "scheduler": {
       "optional": true
     }
   },

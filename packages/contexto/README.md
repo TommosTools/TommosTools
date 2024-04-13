@@ -78,19 +78,11 @@ Contexto is compatible with
 [React Native](https://reactnative.dev/) 16.8+
 and [Preact](https://preactjs.com/) 10+ with React aliasing.
 You'll need to install one of those yourself.
-If you're using React or React Native, you'll also need to install `scheduler`.
 
-### Inside existing React or React Native app
+If you're using React or React Native and have the `scheduler` module installed,
+Contexto will use it to schedule value updates, which may improve performance.
 
-```bash
-npm install contexto scheduler
-```
-or
-```bash
-yarn add contexto scheduler
-```
-
-### Inside existing Preact app
+### Inside existing React / React Native / Preact app
 
 ```bash
 npm install contexto

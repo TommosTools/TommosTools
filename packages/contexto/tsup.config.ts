@@ -11,9 +11,10 @@ export default defineConfig((options: Options) =>
 
 		const config: Options = {
 			entry: ["src/index.ts"],
-			external: ["react-dom", "react-native"],
+			external: ["react", "react-dom", "react-native"],
 			esbuildOptions(options) {
 				options.logOverride = { "import-is-undefined": "info" };
+				options.packages = "external";
 			},
 			format,
 			outDir,
