@@ -147,7 +147,7 @@ function isReactContext(value: unknown): value is React.Context<unknown>
 	return (
 		value !== null
 		&& typeof value === "object"
-		&& "$$typeof" in value!
+		&& "$$typeof" in value!	// eslint-disable-line @typescript-eslint/no-non-null-assertion
 		&& (value as any).$$typeof === Symbol.for("react.context")
 	);
 }
