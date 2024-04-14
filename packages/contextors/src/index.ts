@@ -246,15 +246,21 @@ type Action<Tag, Out> = (
 
 function useEffectOnUpdate(effect: () => (void | (() => void)), deps: unknown[])
 {
-	const hasMounted = useRef(false);
+	const prevDepsRef = useRef(deps);
 
 	useEffect(
 		() =>	// eslint-disable-line consistent-return
 		{
-			if (hasMounted.current)
-				return effect();
-			hasMounted.current = true;
+			const prevDeps = prevDepsRef.current;
+
+			if (prevDeps && deps !== prevDeps)
+			{
+				if (deps?.length !== prevDeps.length || prevDeps.some((prev, i) => prev !== deps[i]))
+					return effect();
+			}
+
+			prevDepsRef.current = deps;
 		},
-		[hasMounted, ...deps]	// eslint-disable-line react-hooks/exhaustive-deps
+		[prevDepsRef, ...deps]	// eslint-disable-line react-hooks/exhaustive-deps
 	);
 }
