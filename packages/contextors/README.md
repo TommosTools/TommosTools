@@ -92,3 +92,4 @@ yarn add contextors
  * [Formik-like example](https://tommostools.github.io/TommosTools/contextors/formik-example)
  * [Integration with Redux](https://tommostools.github.io/TommosTools/contextors/redux)
  * [Contextors vs selectors](https://tommostools.github.io/TommosTools/contextors/selectors)
+ * [FAQ](https://tommostools.github.io/TommosTools/contextors/faq)

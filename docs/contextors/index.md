@@ -92,3 +92,4 @@ yarn add contextors
  * [Formik-like example](formik-example)
  * [Integration with Redux](redux)
  * [Contextors vs selectors](selectors)
+ * [FAQ](faq)
